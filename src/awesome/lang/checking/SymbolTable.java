@@ -11,7 +11,7 @@ public class SymbolTable{
 	
 	public SymbolTable() {
 		// outer scope
-		declarations.add(new HashMap<String, Type>());
+		this.openScope();
 	}
 	
 	/** Adds a next deeper scope level. */
