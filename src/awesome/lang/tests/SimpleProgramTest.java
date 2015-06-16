@@ -1,5 +1,7 @@
 package awesome.lang.tests;
 
+import java.io.IOException;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,5 +59,12 @@ public class SimpleProgramTest {
 			Assert.fail();
 		} catch (Exception e) {
 		}
+	}
+	
+	@Test
+	public void testFileCreation() throws IOException {
+		program.addInstr(OpCode.Nop);
+		program.addInstr(OpCode.EndProg);
+		program.writeSprockell("gen.hs");
 	}
 }

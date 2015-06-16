@@ -39,6 +39,8 @@ NUM: DIGIT+;
 STRING: '"' (~'"' | '""')* '"';
 
 WS: [\t\r\n ]+ -> skip;
+LINECOMMENT: '//' (~[\r\n])* -> skip;
+BLOCKCOMMENT: '/*' .*? '*/' -> skip;
 
 LETTER: [A-Za-z];
 DIGIT: [0-9];
