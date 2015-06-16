@@ -1,5 +1,9 @@
 package awesome.lang.model;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 public class Program {
@@ -34,6 +38,13 @@ public class Program {
 		instructions.add(instr);
 	}
 	
+	public void writeSprockell(String pathName) throws IOException{
+		String prog = generateSprockell();
+		Path path = Paths.get("gen", pathName);
+		path.toFile().getParentFile().mkdirs();
+		Files.write(path, prog.getBytes());
+	}
+	
 	public String generateSprockell(){
 		StringBuilder builder = new StringBuilder();
 
@@ -50,7 +61,7 @@ public class Program {
 		}
 
 		builder.append("\t]\n");
-		builder.append("run " + numSprockells + " prog\n");
+		builder.append("main = run " + numSprockells + " prog\n");
 		
 		return builder.toString();
 	}
