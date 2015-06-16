@@ -50,7 +50,7 @@ public class Instruction {
 			builder.append(operands[i].toString());
 		}
 		
-		if(label != null){
+		if (label != null) {
 			builder.append("--(label: ");
 			builder.append(label.getName());
 			builder.append(")");
