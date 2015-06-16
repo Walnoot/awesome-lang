@@ -36,7 +36,7 @@ NOT: 'not';
 ID: LETTER (LETTER | DIGIT)*;
 NUM: DIGIT+;
 
-STRING: '"' (~'"')* '"';
+STRING: '"' (~'"' | '""')* '"';
 
 WS: [\t\r\n ]+ -> skip;
 

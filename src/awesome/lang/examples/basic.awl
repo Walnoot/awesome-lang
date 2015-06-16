@@ -5,6 +5,9 @@
 	
 	if (test2)
 		test1 = not test2;
+	else {
+		asm "debug ""Test is false"""
+	}
 		
 	if (test1) {
 		test2 = true;

@@ -10,7 +10,7 @@ stat: type ID SEMI						#declStat
 	| ID ASSIGN expr SEMI				#assignStat
 	| type ID ASSIGN expr SEMI			#declAssignStat
 	| ASM STRING SEMI					#asmStat
-	| IF LB expr RB stat (ELSE stat)?	#ifStat
+	| IF LB expr RB stat  (ELSE stat)?	#ifStat
 	| WHILE LB expr RB stat				#whileStat
 	| block								#blockStat
 	;
