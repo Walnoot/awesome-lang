@@ -3,18 +3,20 @@ package awesome.lang.checking;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import awesome.lang.model.Type;
+
 public class SymbolTable{
 
-	private ArrayList<HashMap<String, String>> declarations = new ArrayList<HashMap<String, String>>();
+	private ArrayList<HashMap<String, Type>> declarations = new ArrayList<HashMap<String, Type>>();
 	
 	public SymbolTable() {
 		// outer scope
-		declarations.add(new HashMap<String, String>());
+		declarations.add(new HashMap<String, Type>());
 	}
 	
 	/** Adds a next deeper scope level. */
 	public void openScope() {
-		declarations.add(new HashMap<String, String>());
+		declarations.add(new HashMap<String, Type>());
 	}
 
 	/** Removes the deepest scope level.
@@ -33,9 +35,9 @@ public class SymbolTable{
 	 * @return <code>true</code> if the identifier was added,
 	 * <code>false</code> if it was already declared in this scope.
 	 */
-	public boolean add(String id, String type) {
+	public boolean add(String id, Type type) {
 		
-		HashMap<String, String> scope = declarations.get(declarations.size()-1);
+		HashMap<String, Type> scope = declarations.get(declarations.size()-1);
 		
 		if (scope.containsKey(id))
 			return false;
@@ -60,7 +62,7 @@ public class SymbolTable{
 		return false;
 	}
 	
-	public String getType(String id) {
+	public Type getType(String id) {
 		
 		for (int i = declarations.size()-1; i >= 0; i--) {
 			if (declarations.get(i).containsKey(id)) {

@@ -41,42 +41,63 @@ public class TypeChecker extends GrammarBaseListener {
 
 	@Override
 	public void exitDeclStat(DeclStatContext ctx) {
+		// add new variable to scope (uninitialized)
+		String name = ctx.ID().getText();
+		Type type = ctx.type().INT() != null ? Type.Int : Type.Bool;
+		if (this.variables.add(name, type) == false) {
+			this.addError("Redeclaration of variable "+name+" in expression: \"{expr\"", ctx);
+		}
 		
 	}
 
 	@Override
 	public void exitDeclAssignStat(DeclAssignStatContext ctx) {
-		
+		// add new variable to scope (with value)
+		String name = ctx.ID().getText();
+		Type type = this.types.get(ctx.expr());
+		if (this.variables.add(name, type) == false) {
+			this.addError("Redeclaration of variable "+name+" in expression: \"{expr\"", ctx);
+		}
 	}
 
 	@Override
 	public void exitBlockStat(BlockStatContext ctx) {
-		
+		// not interesting?
 	}
 
 	@Override
 	public void exitAssignStat(AssignStatContext ctx) {
+		// check assign type to variable type
+		String name = ctx.ID().getText();
+		if (this.variables.contains(name) == false) {
+			this.addError("Assignment of undeclared variable "+name+" in expression: \"{expr}\"", ctx);
+		} else {
+			Type vartype = this.variables.getType(name);
+			Type exptype = this.types.get(ctx.expr());
+			if (vartype != exptype) {
+				this.addError("Assignment of type "+exptype.toString()+" to variable of type "+vartype.toString()+" in expression \"{expr}\"", ctx);
+			}
+		}
 		
 	}
 	
 	@Override
 	public void exitWhileStat(WhileStatContext ctx) {
-		
+		if (this.types.get(ctx.expr()) != Type.Bool) {
+			this.addError("Expression in while-statement does not return boolean: \"{expr}\"", ctx);
+		}
 	}
 
 	@Override
 	public void exitAsmStat(AsmStatContext ctx) {
-		
+		// not interesting?
 	}
 
 	@Override
 	public void exitIfStat(IfStatContext ctx) {
-		
-	}
-	
-	@Override
-	public void exitType(TypeContext ctx) {
-		
+		if (this.types.get(ctx.expr()) != Type.Bool) {
+			this.addError("Expression in if-statement does not return boolean: \"{expr}\"", ctx);
+		}
 	}
 
 	@Override
@@ -184,7 +205,14 @@ public class TypeChecker extends GrammarBaseListener {
 	
 	@Override
 	public void exitIdExpr(IdExprContext ctx) {
-		// TODO: Put variable type
+		String name = ctx.ID().getText();
+		if (this.variables.contains(name) == false) {
+			this.addError("use of undeclared variable "+name+" in expression: \"{expr}\"", ctx);
+			this.types.put(ctx, Type.Bool); // default type to prevent lookup errors
+		} else {
+			this.types.put(ctx, this.variables.getType(name));
+		}
+		
 	}
 	
 }
