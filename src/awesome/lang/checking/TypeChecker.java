@@ -26,6 +26,10 @@ public class TypeChecker extends GrammarBaseListener {
 		
 	}
 
+	public ArrayList<String> getErrors() {
+		return new ArrayList<String> (this.errors);
+	}
+
 	@Override
 	public void enterBlock(BlockContext ctx) {
 		
