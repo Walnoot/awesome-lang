@@ -7,6 +7,7 @@ LB: '(';
 RB: ')';
 
 IF: 'if';
+ELSE: 'else';
 WHILE: 'while';
 ASM: 'asm';
 SEMI: ';';
