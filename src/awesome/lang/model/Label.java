@@ -9,9 +9,17 @@ public class Label {
 	}
 	
 	public void setInstr(Instruction instr) {
-		if(instr != null) throw new IllegalStateException("Label already assigned to " + instr);
+		if(this.instr != null) throw new IllegalStateException("Label already assigned to " + instr);
 		
 		this.instr = instr;
+	}
+	
+	public String getName() {
+		return name;
+	}
+	
+	public Instruction getInstr() {
+		return instr;
 	}
 	
 	@Override

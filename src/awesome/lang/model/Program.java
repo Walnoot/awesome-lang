@@ -2,8 +2,6 @@ package awesome.lang.model;
 
 import java.util.ArrayList;
 
-import awesome.lang.model.Instruction.OpCode;
-
 public class Program {
 	private ArrayList<Instruction> instructions = new ArrayList<Instruction>();
 	private int numSprockells;
