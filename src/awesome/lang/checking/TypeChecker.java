@@ -156,11 +156,9 @@ public class TypeChecker extends GrammarBaseListener {
 		// valid types?
 		if (this.types.get(child1) != this.types.get(child2)) {
 			this.addError("Comparing "+this.types.get(child1)+" with "+this.types.get(child2) + " in \"{expr}\"", ctx);
-		}
-		else if (this.types.get(child1) == Type.Int) {
+		} else if (this.types.get(child1) == Type.Int) {
 			this.types.put(ctx, Type.Bool);
-		}
-		else if (ctx.compOp().EQ() == null && ctx.compOp().NE() == null) {// bool comparison with a wrong operand
+		} else if (ctx.compOp().EQ() == null && ctx.compOp().NE() == null) {// bool comparison with a wrong operand
 			this.addError("Doing an impossible comparison on two booleans: \"{expr}\"", ctx);
 		}
 		

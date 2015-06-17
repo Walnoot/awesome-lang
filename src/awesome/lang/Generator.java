@@ -36,20 +36,19 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	@Override
 	public Instruction visitPrefixExpr(PrefixExprContext ctx) {
 		Instruction i = visit(ctx.expr());
+		VReg reg = regs.get(ctx.expr());
+		//store the result of this computation in the register of the previous expression
+		regs.put(ctx, reg);
 		
 		if(ctx.prefixOp().SUB() != null){
 			//unary minus
-			VReg reg = regs.get(ctx.expr());
-			prog.addInstr(OpCode.Compute, Operator.Sub, 0, reg, newReg(ctx));
-			
-			return i;
+			prog.addInstr(OpCode.Compute, Operator.Sub, 0, reg, reg);
 		} else {
 			//not
-			VReg reg = regs.get(ctx.expr());
-			prog.addInstr(OpCode.Compute, Operator.Xor, TRUE, reg, newReg(ctx));
-			
-			return i;
+			prog.addInstr(OpCode.Compute, Operator.Xor, TRUE, reg, reg);
 		}
+		
+		return i;
 	}
 	
 	@Override
@@ -95,7 +94,11 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		Instruction i = visit(expr1);
 		visit(expr2);
 		
-		prog.addInstr(OpCode.Compute, op, regs.get(expr1), regs.get(expr2), newReg(expr));
+		//put the result of this binary operation in the reg of expr2
+		//since it's not needed anymore
+		VReg reg = regs.get(expr2);
+		prog.addInstr(OpCode.Compute, op, regs.get(expr1), regs.get(expr2), reg);
+		regs.put(expr, reg);
 		
 		return i;
 	}
