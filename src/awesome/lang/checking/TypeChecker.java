@@ -49,16 +49,16 @@ public class TypeChecker extends GrammarBaseListener {
 	@Override
 	public void enterBlock(BlockContext ctx) {
 		
-		if (ctx.parent.getClass() != ProgramContext.class)
-			this.variables.openScope();
+		//if (ctx.parent.getClass() != ProgramContext.class)
+		//	this.variables.openScope();
 		
 	}
 	
 	@Override
 	public void exitBlock(BlockContext ctx) {
 		
-		if (ctx.parent.getClass() != ProgramContext.class)
-			this.variables.closeScope();
+		//if (ctx.parent.getClass() != ProgramContext.class)
+		//	this.variables.closeScope();
 		
 	}
 
