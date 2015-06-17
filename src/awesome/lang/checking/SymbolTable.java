@@ -25,14 +25,17 @@ public class SymbolTable{
 	}
 
 	/** Removes the deepest scope level.
+	 * @return Scope removed scope
 	 * @throws RuntimeException if the table only contains the outer scope.
 	 */
-	public void closeScope() {
+	public Scope closeScope() {
 		
 		if (this.declarations.size() == 1)
 			throw new RuntimeException("Table only contains outer scope");
 		
-		this.declarations.remove(this.getCurrentScope());
+		Scope scope = this.getCurrentScope();
+		this.declarations.remove(scope);
+		return scope;
 		
 	}
 	
