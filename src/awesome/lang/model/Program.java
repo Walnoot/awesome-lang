@@ -39,9 +39,11 @@ public class Program {
 	}
 	
 	public void writeSprockell(String pathName) throws IOException{
+		writeSprockell(Paths.get("gen", pathName));
+	}
+	
+	public void writeSprockell(Path path) throws IOException{
 		String prog = generateSprockell();
-		Path path = Paths.get("gen", pathName);
-		path.toFile().getParentFile().mkdirs();
 		Files.write(path, prog.getBytes());
 	}
 	

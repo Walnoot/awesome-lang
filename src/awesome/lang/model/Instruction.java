@@ -35,6 +35,10 @@ public class Instruction {
 		this.comment = comment;
 	}
 	
+	public void setLabel(Label label) {
+		this.label = label;
+	}
+	
 	public Label getLabel() {
 		return label;
 	}
