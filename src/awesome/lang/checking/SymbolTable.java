@@ -1,33 +1,41 @@
 package awesome.lang.checking;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+
+import org.antlr.v4.runtime.ParserRuleContext;
 
 import awesome.lang.model.Type;
 
 public class SymbolTable{
 
-	private ArrayList<HashMap<String, Type>> declarations = new ArrayList<HashMap<String, Type>>();
+	private final ArrayList<Scope> declarations = new ArrayList<Scope>();
 	
 	public SymbolTable() {
 		// outer scope
-		this.openScope();
+		this.declarations.add(new Scope(null, null));
+	}
+
+	public Scope getCurrentScope() {
+		return this.declarations.get(this.declarations.size()-1);
 	}
 	
 	/** Adds a next deeper scope level. */
-	public void openScope() {
-		declarations.add(new HashMap<String, Type>());
+	public void openScope(ParserRuleContext ctx) {
+		declarations.add(new Scope(ctx, this.getCurrentScope()));
 	}
 
 	/** Removes the deepest scope level.
+	 * @return Scope removed scope
 	 * @throws RuntimeException if the table only contains the outer scope.
 	 */
-	public void closeScope() {
+	public Scope closeScope() {
 		
-		if (declarations.size() == 1)
+		if (this.declarations.size() == 1)
 			throw new RuntimeException("Table only contains outer scope");
 		
-		declarations.remove(declarations.size()-1);
+		Scope scope = this.getCurrentScope();
+		this.declarations.remove(scope);
+		return scope;
 		
 	}
 	
@@ -37,13 +45,7 @@ public class SymbolTable{
 	 */
 	public boolean add(String id, Type type) {
 		
-		HashMap<String, Type> scope = declarations.get(declarations.size()-1);
-		
-		if (scope.containsKey(id))
-			return false;
-		
-		scope.put(id, type);
-		return true;
+		return this.getCurrentScope().add(id, type);
 		
 	}
 
@@ -66,7 +68,7 @@ public class SymbolTable{
 		
 		for (int i = declarations.size()-1; i >= 0; i--) {
 			if (declarations.get(i).containsKey(id)) {
-				return declarations.get(i).get(id);
+				return declarations.get(i).getType(id);
 			}
 		}
 		
