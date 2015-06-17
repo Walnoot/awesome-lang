@@ -221,6 +221,7 @@ public class TypeChecker extends GrammarBaseListener {
 			this.addError("use of undeclared variable "+name+" in expression: \"{expr}\"", ctx);
 			this.types.put(ctx, Type.Bool); // default type to prevent lookup errors
 		} else {
+			this.variables.assign(ctx);
 			this.types.put(ctx, this.variables.getType(name));
 		}
 		

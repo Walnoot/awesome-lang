@@ -8,6 +8,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import awesome.lang.GrammarParser.AssignStatContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
 import awesome.lang.GrammarParser.DeclStatContext;
+import awesome.lang.GrammarParser.IdExprContext;
 import awesome.lang.model.Type;
 
 public class SymbolTable{
@@ -76,6 +77,19 @@ public class SymbolTable{
 	 */
 	public boolean assign(AssignStatContext ctx) {
 		
+		String id = ctx.ID().getText();
+		for (int i = declarations.size()-1; i >= 0; i--) {
+			if (declarations.get(i).containsKey(id)) {
+				this.contextmap.put(ctx, declarations.get(i));
+				return true;
+			}
+		}
+		
+		return false;
+		
+	}
+	public boolean assign(IdExprContext ctx) {
+
 		String id = ctx.ID().getText();
 		for (int i = declarations.size()-1; i >= 0; i--) {
 			if (declarations.get(i).containsKey(id)) {
@@ -181,6 +195,9 @@ public class SymbolTable{
 	public int getOffset(AssignStatContext ctx) {
 		return this.getOffset((ParserRuleContext) ctx, ctx.ID().getText());
 	}
+	public int getOffset(IdExprContext ctx) {
+		return this.getOffset((ParserRuleContext) ctx, ctx.ID().getText());
+	}
 	
 	public int getOffset(String id){
 
@@ -193,4 +210,5 @@ public class SymbolTable{
 		throw new IllegalArgumentException("Variable not found!");
 		
 	}
+	
 }
