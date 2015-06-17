@@ -1,15 +1,18 @@
 package awesome.lang.checking;
 
 import java.util.ArrayList;
+
+import org.antlr.v4.runtime.ParserRuleContext;
+
 import awesome.lang.model.Type;
 
 public class SymbolTable{
 
-	private ArrayList<Scope> declarations = new ArrayList<Scope>();
+	private final ArrayList<Scope> declarations = new ArrayList<Scope>();
 	
 	public SymbolTable() {
 		// outer scope
-		this.declarations.add(new Scope(null));
+		this.declarations.add(new Scope(null, null));
 	}
 
 	public Scope getCurrentScope() {
@@ -17,8 +20,8 @@ public class SymbolTable{
 	}
 	
 	/** Adds a next deeper scope level. */
-	public void openScope() {
-		declarations.add(new Scope(this.getCurrentScope()));
+	public void openScope(ParserRuleContext ctx) {
+		declarations.add(new Scope(ctx, this.getCurrentScope()));
 	}
 
 	/** Removes the deepest scope level.

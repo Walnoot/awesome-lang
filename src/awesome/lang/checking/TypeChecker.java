@@ -50,7 +50,7 @@ public class TypeChecker extends GrammarBaseListener {
 	public void enterBlock(BlockContext ctx) {
 		
 		if (ctx.parent.getClass() != ProgramContext.class)
-			this.variables.openScope();
+			this.variables.openScope(ctx);
 		
 	}
 	
