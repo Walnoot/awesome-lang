@@ -73,5 +73,8 @@ public class SymbolTable{
 		throw new RuntimeException("Variable not found!");
 		
 	}
-
+	
+	public int getOffset(String id){
+		return 0;
+	}
 }
