@@ -37,6 +37,7 @@ public class Instruction {
 	
 	public void setLabel(Label label) {
 		this.label = label;
+		label.setInstr(this);
 	}
 	
 	public Label getLabel() {
@@ -51,6 +52,7 @@ public class Instruction {
 		
 		for (int i = 0; i < operands.length; i++) {
 			builder.append(' ');
+			
 			builder.append(operands[i].toString());
 		}
 		

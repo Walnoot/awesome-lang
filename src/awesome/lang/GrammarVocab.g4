@@ -9,6 +9,7 @@ RB: ')';
 IF: 'if';
 ELSE: 'else';
 WHILE: 'while';
+PRINT: 'print';//temp, move to func later
 ASM: 'asm';
 SEMI: ';';
 ASSIGN: '=';

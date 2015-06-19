@@ -15,6 +15,7 @@ import awesome.lang.GrammarParser.MultDivExprContext;
 import awesome.lang.GrammarParser.NumExprContext;
 import awesome.lang.GrammarParser.ParExprContext;
 import awesome.lang.GrammarParser.PrefixExprContext;
+import awesome.lang.GrammarParser.PrintStatContext;
 import awesome.lang.GrammarParser.ProgramContext;
 import awesome.lang.GrammarParser.TrueExprContext;
 import awesome.lang.GrammarParser.WhileStatContext;
@@ -24,6 +25,7 @@ import awesome.lang.model.MemAddr;
 import awesome.lang.model.OpCode;
 import awesome.lang.model.Operator;
 import awesome.lang.model.Program;
+import awesome.lang.model.Reg;
 import awesome.lang.model.Target;
 
 /**
@@ -61,20 +63,20 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitAssignStat(AssignStatContext ctx) {
-		String var = ctx.ID().getText();  
-		int offset = 0;                   
-		                                  
+		String var = ctx.ID().getText();
+		int offset = 0;
+		
 		Instruction i = visit(ctx.expr());
 		prog.addInstr(OpCode.Store, regs.get(ctx.expr()), MemAddr.direct(offset));
-		                                  
-		return i;                         
-	}                                     
-	                                      
-	@Override                             
+		
+		return i;
+	}
+	
+	@Override
 	public Instruction visitDeclAssignStat(DeclAssignStatContext ctx) {
-		String var = ctx.ID().getText();  
-		int offset = 0;                   
-		                                  
+		String var = ctx.ID().getText();
+		int offset = 0;
+		
 		Instruction i = visit(ctx.expr());
 		prog.addInstr(OpCode.Store, regs.get(ctx.expr()), MemAddr.direct(offset));
 		
@@ -89,14 +91,16 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			//if-then-else
 			
 			Label thenLabel = new Label("then"), endLabel = new Label("endif");
-			prog.addInstr(OpCode.Branch, regs.get(ctx.expr()), thenLabel);
+			prog.addInstr(OpCode.Branch, regs.get(ctx.expr()), Target.abs(thenLabel));
 			visit(ctx.stat(1));
-			prog.addInstr(OpCode.Jump, endLabel);
+			prog.addInstr(OpCode.Jump, Target.abs(endLabel));
 			visit(ctx.stat(0)).setLabel(thenLabel);
 			prog.addInstr(endLabel, OpCode.Nop);
 		} else {
 			Label endLabel = new Label("endif");
-			prog.addInstr(OpCode.Branch, regs.get(ctx.expr()), endLabel);
+			VReg reg = regs.get(ctx.expr());
+			prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);
+			prog.addInstr(OpCode.Branch, reg, Target.abs(endLabel));
 			visit(ctx.stat(0));
 			prog.addInstr(endLabel, OpCode.Nop);
 		}
@@ -119,6 +123,22 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		return i;
 	}
 	
+	@Override
+	public Instruction visitPrintStat(PrintStatContext ctx) {
+		//temp, will be a function later
+		//only handles numbers between 0 and 9
+		Instruction i = visit(ctx.expr());
+		
+		VReg value = regs.get(ctx.expr());
+		VReg valChar = newReg(ctx);
+		
+		prog.addInstr(OpCode.Const, (int) '0', valChar);
+		prog.addInstr(OpCode.Compute, Operator.Add, value, valChar, valChar);
+		prog.addInstr(OpCode.Write, valChar, "stdio");
+		
+		return i;
+	}
+	
 	//expressions
 	
 	@Override
@@ -133,7 +153,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			prog.addInstr(OpCode.Compute, Operator.Sub, 0, reg, reg);
 		} else {
 			//not
-			prog.addInstr(OpCode.Compute, Operator.NEq, TRUE, reg, reg);
+			prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);
 		}
 		
 		return i;
@@ -224,7 +244,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	}
 	
 	private VReg newReg(ParserRuleContext ctx) {
-		VReg reg = new VReg("VReg" + regCounter++);
+		VReg reg = new VReg(regCounter++);
 		regs.put(ctx, reg);
 		return reg;
 	}
@@ -233,10 +253,15 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	 * Represents a virtual register
 	 */
 	private class VReg {
-		private String name;
+		private int id;
 		
-		private VReg(String name) {
-			this.name = name;
+		private VReg(int id) {
+			this.id = id;
+		}
+		
+		@Override
+		public String toString() {
+			return "Reg" + (char) ((int) 'A' + id);
 		}
 	}
 }

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-ghci -i../sprockell/src $1
+ghc -i../sprockell/src $1 -e main

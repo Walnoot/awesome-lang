@@ -3,13 +3,14 @@ package awesome.lang.model;
 public class Label {
 	private String name;
 	private Instruction instr;
-
-	public Label(String name){
+	
+	public Label(String name) {
 		this.name = name;
 	}
 	
 	public void setInstr(Instruction instr) {
-		if(this.instr != null) throw new IllegalStateException("Label already assigned to " + instr);
+		if (this.instr != null)
+			throw new IllegalStateException("Label already assigned to " + instr);
 		
 		this.instr = instr;
 	}
@@ -24,6 +25,10 @@ public class Label {
 	
 	@Override
 	public String toString() {
-		return Integer.toString(instr.getPosition());
+		if (instr == null) {
+			return "unset(" + name + ")";
+		} else {
+			return Integer.toString(instr.getPosition());
+		}
 	}
 }
