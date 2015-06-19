@@ -65,10 +65,9 @@ public class TypeChecker extends GrammarBaseListener {
 	@Override
 	public void exitDeclStat(DeclStatContext ctx) {
 		// add new variable to scope (uninitialized)
-		String name = ctx.ID().getText();
 		Type type = ctx.type().INT() != null ? Type.Int : Type.Bool;
-		if (this.variables.add(name, type) == false) {
-			this.addError("Redeclaration of variable "+name+" in expression: \"{expr\"", ctx);
+		if (this.variables.add(ctx, type) == false) {
+			this.addError("Redeclaration of variable "+ctx.ID().getText()+" in expression: \"{expr}\"", ctx);
 		}
 		
 	}
@@ -76,10 +75,9 @@ public class TypeChecker extends GrammarBaseListener {
 	@Override
 	public void exitDeclAssignStat(DeclAssignStatContext ctx) {
 		// add new variable to scope (with value)
-		String name = ctx.ID().getText();
 		Type type = this.types.get(ctx.expr());
-		if (this.variables.add(name, type) == false) {
-			this.addError("Redeclaration of variable "+name+" in expression: \"{expr}\"", ctx);
+		if (this.variables.add(ctx, type) == false) {
+			this.addError("Redeclaration of variable "+ctx.ID().getText()+" in expression: \"{expr}\"", ctx);
 		}
 	}
 
@@ -94,6 +92,8 @@ public class TypeChecker extends GrammarBaseListener {
 			Type exptype = this.types.get(ctx.expr());
 			if (vartype != exptype) {
 				this.addError("Assignment of type "+exptype.toString()+" to variable of type "+vartype.toString()+" in expression \"{expr}\"", ctx);
+			} else {
+				this.variables.assign(ctx);
 			}
 		}
 		
@@ -221,6 +221,7 @@ public class TypeChecker extends GrammarBaseListener {
 			this.addError("use of undeclared variable "+name+" in expression: \"{expr}\"", ctx);
 			this.types.put(ctx, Type.Bool); // default type to prevent lookup errors
 		} else {
+			this.variables.assign(ctx);
 			this.types.put(ctx, this.variables.getType(name));
 		}
 		

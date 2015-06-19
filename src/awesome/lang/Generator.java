@@ -10,6 +10,7 @@ import awesome.lang.GrammarParser.BoolExprContext;
 import awesome.lang.GrammarParser.CompExprContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
 import awesome.lang.GrammarParser.FalseExprContext;
+import awesome.lang.GrammarParser.IdExprContext;
 import awesome.lang.GrammarParser.IfStatContext;
 import awesome.lang.GrammarParser.MultDivExprContext;
 import awesome.lang.GrammarParser.NumExprContext;
@@ -19,6 +20,7 @@ import awesome.lang.GrammarParser.PrintStatContext;
 import awesome.lang.GrammarParser.ProgramContext;
 import awesome.lang.GrammarParser.TrueExprContext;
 import awesome.lang.GrammarParser.WhileStatContext;
+import awesome.lang.checking.SymbolTable;
 import awesome.lang.model.Instruction;
 import awesome.lang.model.Label;
 import awesome.lang.model.MemAddr;
@@ -38,8 +40,11 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	private ParseTreeProperty<VReg> regs;
 	private int regCounter = 0;//virtual register counter
 	private Program prog;
+
+	private SymbolTable symboltable;
 	
-	public Generator() {
+	public Generator(SymbolTable symboltable) {
+		this.symboltable = symboltable;
 	}
 	
 	public Program genProgram(ParseTree tree) {
@@ -63,8 +68,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitAssignStat(AssignStatContext ctx) {
-		String var = ctx.ID().getText();
-		int offset = 0;
+		int offset = this.symboltable.getOffset(ctx);                   
 		
 		Instruction i = visit(ctx.expr());
 		prog.addInstr(OpCode.Store, regs.get(ctx.expr()), MemAddr.direct(offset));
@@ -74,9 +78,8 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitDeclAssignStat(DeclAssignStatContext ctx) {
-		String var = ctx.ID().getText();
-		int offset = 0;
-		
+		int offset = this.symboltable.getOffset(ctx);                   
+		                                  
 		Instruction i = visit(ctx.expr());
 		prog.addInstr(OpCode.Store, regs.get(ctx.expr()), MemAddr.direct(offset));
 		
@@ -224,6 +227,12 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		regs.put(ctx, regs.get(ctx.expr()));
 		
 		return i;
+	}
+	
+	@Override
+	public Instruction visitIdExpr(IdExprContext ctx) {
+		int offset = this.symboltable.getOffset(ctx);
+		return prog.addInstr(OpCode.Load, MemAddr.direct(offset), newReg(ctx));
 	}
 	
 	@Override
