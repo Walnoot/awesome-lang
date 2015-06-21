@@ -1,5 +1,10 @@
 package awesome.lang;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.antlr.v4.parse.ANTLRParser.throwsSpec_return;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
@@ -9,6 +14,7 @@ import awesome.lang.GrammarParser.AssignStatContext;
 import awesome.lang.GrammarParser.BoolExprContext;
 import awesome.lang.GrammarParser.CompExprContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
+import awesome.lang.GrammarParser.ExprContext;
 import awesome.lang.GrammarParser.FalseExprContext;
 import awesome.lang.GrammarParser.IdExprContext;
 import awesome.lang.GrammarParser.IfStatContext;
@@ -37,8 +43,8 @@ import awesome.lang.model.Target;
 public class Generator extends GrammarBaseVisitor<Instruction> {
 	private static final int TRUE = 1, FALSE = 0;
 	
-	private ParseTreeProperty<VReg> regs;
-	private int regCounter = 0;//virtual register counter
+	private ParseTreeProperty<Reg> regs;
+	private ArrayList<Reg> freeRegs;
 	private Program prog;
 
 	private SymbolTable symboltable;
@@ -49,8 +55,8 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	public Program genProgram(ParseTree tree) {
 		prog = new Program(1);
-		regCounter = 0;
-		regs = new ParseTreeProperty<VReg>();
+		freeRegs = new ArrayList<Reg>(Arrays.asList(Reg.RegA, Reg.RegB, Reg.RegC, Reg.RegD, Reg.RegE));
+		regs = new ParseTreeProperty<Reg>();
 		
 		tree.accept(this);
 		
@@ -68,20 +74,19 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitAssignStat(AssignStatContext ctx) {
-		int offset = this.symboltable.getOffset(ctx);                   
-		
-		Instruction i = visit(ctx.expr());
-		prog.addInstr(OpCode.Store, regs.get(ctx.expr()), MemAddr.direct(offset));
-		
-		return i;
+		return assign(ctx.expr(), symboltable.getOffset(ctx));
 	}
 	
 	@Override
 	public Instruction visitDeclAssignStat(DeclAssignStatContext ctx) {
-		int offset = this.symboltable.getOffset(ctx);                   
-		                                  
-		Instruction i = visit(ctx.expr());
-		prog.addInstr(OpCode.Store, regs.get(ctx.expr()), MemAddr.direct(offset));
+		return assign(ctx.expr(), symboltable.getOffset(ctx));
+	}
+	
+	private Instruction assign(ExprContext exprContext, int offset) {
+		Instruction i = visit(exprContext);
+		Reg reg = regs.get(exprContext);
+		prog.addInstr(OpCode.Store, reg, MemAddr.direct(offset));
+		freeReg(reg);
 		
 		return i;
 	}
@@ -101,7 +106,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			prog.addInstr(endLabel, OpCode.Nop);
 		} else {
 			Label endLabel = new Label("endif");
-			VReg reg = regs.get(ctx.expr());
+			Reg reg = regs.get(ctx.expr());
 			prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);//inverse
 			prog.addInstr(OpCode.Branch, reg, Target.abs(endLabel));
 			visit(ctx.stat(0));
@@ -118,7 +123,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		i.setLabel(compLabel);
 		
 		Label endLabel = new Label("endwhile");
-		VReg reg = regs.get(ctx.expr());
+		Reg reg = regs.get(ctx.expr());
 		prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);//inverse
 		prog.addInstr(OpCode.Branch, reg, Target.abs(endLabel));
 		visit(ctx.stat());
@@ -134,12 +139,15 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		//only handles numbers between 0 and 9
 		Instruction i = visit(ctx.expr());
 		
-		VReg value = regs.get(ctx.expr());
-		VReg valChar = newReg(ctx);
+		Reg value = regs.get(ctx.expr());
+		Reg valChar = newReg(ctx);
 		
 		prog.addInstr(OpCode.Const, (int) '0', valChar);
 		prog.addInstr(OpCode.Compute, Operator.Add, value, valChar, valChar);
 		prog.addInstr(OpCode.Write, valChar, "stdio");
+
+		freeReg(value);
+		freeReg(valChar);
 		
 		return i;
 	}
@@ -149,7 +157,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	@Override
 	public Instruction visitPrefixExpr(PrefixExprContext ctx) {
 		Instruction i = visit(ctx.expr());
-		VReg reg = regs.get(ctx.expr());
+		Reg reg = regs.get(ctx.expr());
 		//store the result of this computation in the register of the previous expression
 		regs.put(ctx, reg);
 		
@@ -216,9 +224,11 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		//put the result of this binary operation in the reg of expr2
 		//since it's not needed anymore
-		VReg reg = regs.get(expr2);
+		Reg reg = regs.get(expr2);
 		prog.addInstr(OpCode.Compute, op, regs.get(expr1), regs.get(expr2), reg);
 		regs.put(expr, reg);
+		
+		freeReg(regs.get(expr1));
 		
 		return i;
 	}
@@ -254,25 +264,22 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		return prog.addInstr(OpCode.Const, FALSE, newReg(ctx));
 	}
 	
-	private VReg newReg(ParserRuleContext ctx) {
-		VReg reg = new VReg(regCounter++);
+	private Reg newReg(ParserRuleContext ctx) {
+		if(freeRegs.size() == 0){
+			throw new IllegalStateException("Out of registers");
+		}
+		
+		Reg reg = freeRegs.remove(0);
 		regs.put(ctx, reg);
+		
 		return reg;
 	}
 	
-	/**
-	 * Represents a virtual register
-	 */
-	private class VReg {
-		private int id;
-		
-		private VReg(int id) {
-			this.id = id;
+	private void freeReg(Reg reg) {
+		if(freeRegs.contains(reg)){
+			throw new IllegalArgumentException("Register already freed");
 		}
 		
-		@Override
-		public String toString() {
-			return "Reg" + (char) ((int) 'A' + id);
-		}
+		freeRegs.add(reg);
 	}
 }
