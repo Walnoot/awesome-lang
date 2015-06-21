@@ -12,6 +12,9 @@ import awesome.lang.model.Program;
 import awesome.lang.model.Reg;
 import awesome.lang.model.Target;
 
+/**
+ * Tests the IR
+ */
 public class SimpleProgramTest {
 	private Program program;
 	
@@ -24,7 +27,6 @@ public class SimpleProgramTest {
 	public void test() {
 		program.addInstr(OpCode.Const, 78, Reg.RegA);
 		program.addInstr(OpCode.Nop).setComment("this is a comment");
-		;
 		
 		System.out.println(program.generateSprockell());
 	}

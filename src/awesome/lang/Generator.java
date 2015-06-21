@@ -102,7 +102,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		} else {
 			Label endLabel = new Label("endif");
 			VReg reg = regs.get(ctx.expr());
-			prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);
+			prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);//inverse
 			prog.addInstr(OpCode.Branch, reg, Target.abs(endLabel));
 			visit(ctx.stat(0));
 			prog.addInstr(endLabel, OpCode.Nop);
@@ -118,7 +118,9 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		i.setLabel(compLabel);
 		
 		Label endLabel = new Label("endwhile");
-		prog.addInstr(OpCode.Branch, regs.get(ctx.expr()), endLabel);
+		VReg reg = regs.get(ctx.expr());
+		prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);//inverse
+		prog.addInstr(OpCode.Branch, reg, Target.abs(endLabel));
 		visit(ctx.stat());
 		prog.addInstr(OpCode.Jump, Target.abs(compLabel));
 		prog.addInstr(endLabel, OpCode.Nop);

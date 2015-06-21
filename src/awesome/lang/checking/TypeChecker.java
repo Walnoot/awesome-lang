@@ -45,6 +45,10 @@ public class TypeChecker extends GrammarBaseListener {
 	public ArrayList<String> getErrors() {
 		return new ArrayList<String> (this.errors);
 	}
+	
+	public SymbolTable getSymbolTable() {
+		return variables;
+	}
 
 	@Override
 	public void enterBlock(BlockContext ctx) {
