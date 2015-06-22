@@ -35,8 +35,6 @@ public class CompilerTest {
 	
 	@Test
 	public void testCompile() throws IOException, InterruptedException, CompilationException {
-		testProgram("{int i = 0;}", "");
-		testProgram("{print(6);}", "6");
 		testProgram("{print(2+2+3);}", "7");
 		testProgram("{int x = 1;print(x);}", "1");
 		testProgram("{int x = 1;print(x+3);}", "4");
@@ -56,6 +54,13 @@ public class CompilerTest {
 	public void testWhile() throws IOException, InterruptedException, CompilationException {
 		testProgram("{ while(false){} print(4); }", "4");
 		testProgram("{ int i=0;while(i<5){i=i+1;} print(i); }", "5");
+		testProgram("{ int i=0;int j=0;while(i<3){i=i+1;j=j+2;} print(j); }", "6");
+	}
+	
+	@Test
+	public void testArrays() throws IOException, InterruptedException, CompilationException {
+		testProgram("{ [int:5] x; x[0] = 5; print(x[0]);}", "5");
+		testProgram("{ int x=1;[int:2] y; int z=4; y[0]=2; y[1]=9; print(x); print(z);}", "14");
 	}
 	
 	private void testProgram(String prog, String expected) throws IOException, InterruptedException, CompilationException {

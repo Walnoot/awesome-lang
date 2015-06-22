@@ -7,7 +7,7 @@ program: block;
 block: LCB stat* RCB;
 
 stat: type ID SEMI						#declStat
-	| ID ASSIGN expr SEMI				#assignStat
+	| target ASSIGN expr SEMI			#assignStat
 	| type ID ASSIGN expr SEMI			#declAssignStat
 	| ASM STRING SEMI					#asmStat
 	| PRINT LB expr RB SEMI				#printStat //temp, move to func later
@@ -16,7 +16,15 @@ stat: type ID SEMI						#declStat
 	| block								#blockStat
 	;
 
-type: INT | BOOL;
+//target of assignment
+target: ID				#idTarget
+	  | ID LSB expr RSB	#arrayTarget
+	  ;
+
+type: INT						#intType
+	| BOOL						#boolType
+	| LSB type COLON NUM RSB	#arrayType
+	;
 
 /** Expression. */
 expr: prefixOp expr			#prefixExpr
@@ -26,6 +34,7 @@ expr: prefixOp expr			#prefixExpr
 	| expr boolOp expr		#boolExpr
 	| LB expr RB			#parExpr
 	| ID					#idExpr
+	| ID LSB expr RSB		#arrayExpr
 	| NUM					#numExpr
 	| TRUE					#trueExpr
 	| FALSE					#falseExpr

@@ -6,6 +6,10 @@ RCB: '}';
 LB: '(';
 RB: ')';
 
+LSB: '[';
+RSB: ']';
+COLON: ':';
+
 IF: 'if';
 ELSE: 'else';
 WHILE: 'while';

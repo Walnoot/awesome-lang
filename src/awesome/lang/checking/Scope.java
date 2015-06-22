@@ -31,7 +31,8 @@ public class Scope {
 			return false;
 
 		this.declarations.put(id, type);
-		this.offsets.put(id, this.offset++);
+		this.offsets.put(id, this.offset);
+		this.offset += type.getSize();
 		return true;
 
 	}

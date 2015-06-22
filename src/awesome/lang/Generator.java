@@ -2,21 +2,23 @@ package awesome.lang;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
-import org.antlr.v4.parse.ANTLRParser.throwsSpec_return;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
 import awesome.lang.GrammarParser.AddSubExprContext;
+import awesome.lang.GrammarParser.ArrayExprContext;
+import awesome.lang.GrammarParser.ArrayTargetContext;
 import awesome.lang.GrammarParser.AssignStatContext;
 import awesome.lang.GrammarParser.BoolExprContext;
 import awesome.lang.GrammarParser.CompExprContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
+import awesome.lang.GrammarParser.DeclStatContext;
 import awesome.lang.GrammarParser.ExprContext;
 import awesome.lang.GrammarParser.FalseExprContext;
 import awesome.lang.GrammarParser.IdExprContext;
+import awesome.lang.GrammarParser.IdTargetContext;
 import awesome.lang.GrammarParser.IfStatContext;
 import awesome.lang.GrammarParser.MultDivExprContext;
 import awesome.lang.GrammarParser.NumExprContext;
@@ -44,6 +46,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	private static final int TRUE = 1, FALSE = 0;
 	
 	private ParseTreeProperty<Reg> regs;
+	private ParseTreeProperty<MemAddr> addresses;//for assignment targets
 	private ArrayList<Reg> freeRegs;
 	private Program prog;
 
@@ -57,6 +60,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		prog = new Program(1);
 		freeRegs = new ArrayList<Reg>(Arrays.asList(Reg.RegA, Reg.RegB, Reg.RegC, Reg.RegD, Reg.RegE));
 		regs = new ParseTreeProperty<Reg>();
+		addresses = new ParseTreeProperty<MemAddr>();
 		
 		tree.accept(this);
 		
@@ -74,18 +78,29 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitAssignStat(AssignStatContext ctx) {
-		return assign(ctx.expr(), symboltable.getOffset(ctx));
+		Instruction targetI = visit(ctx.target());
+		
+		Instruction exprI = assign(ctx.expr(), addresses.get(ctx.target()));
+		
+		if(targetI == null){
+			//target didnt emit instructions
+			return exprI;
+		} else {
+			freeReg(ctx.target());
+			
+			return targetI;
+		}
 	}
 	
 	@Override
 	public Instruction visitDeclAssignStat(DeclAssignStatContext ctx) {
-		return assign(ctx.expr(), symboltable.getOffset(ctx));
+		return assign(ctx.expr(), MemAddr.direct(symboltable.getOffset(ctx)));
 	}
 	
-	private Instruction assign(ExprContext exprContext, int offset) {
+	private Instruction assign(ExprContext exprContext, MemAddr addr) {
 		Instruction i = visit(exprContext);
 		Reg reg = regs.get(exprContext);
-		prog.addInstr(OpCode.Store, reg, MemAddr.direct(offset));
+		prog.addInstr(OpCode.Store, reg, addr);
 		freeReg(reg);
 		
 		return i;
@@ -154,6 +169,31 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		freeReg(valChar);
 		
 		return i;
+	}
+	
+	//targets
+	
+	@Override
+	public Instruction visitIdTarget(IdTargetContext ctx) {
+		MemAddr addr = MemAddr.direct(symboltable.getOffset((AssignStatContext) ctx.getParent()));
+		addresses.put(ctx, addr);
+		
+		return null;
+	}
+	
+	@Override
+	public Instruction visitArrayTarget(ArrayTargetContext ctx) {
+		int offset = symboltable.getOffset((AssignStatContext) ctx.getParent());
+		Reg reg = newReg(ctx);
+		Instruction first = prog.addInstr(OpCode.Const, offset, reg);
+		visit(ctx.expr());
+		Reg exprReg = regs.get(ctx.expr());
+		prog.addInstr(OpCode.Compute, Operator.Add, reg, exprReg, reg);
+		freeReg(exprReg);
+		
+		addresses.put(ctx, MemAddr.deref(reg));
+		
+		return first;
 	}
 	
 	//expressions
@@ -249,6 +289,21 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	public Instruction visitIdExpr(IdExprContext ctx) {
 		int offset = this.symboltable.getOffset(ctx);
 		return prog.addInstr(OpCode.Load, MemAddr.direct(offset), newReg(ctx));
+	}
+	
+	@Override
+	public Instruction visitArrayExpr(ArrayExprContext ctx) {
+		Instruction i = visit(ctx.expr());
+		
+		Reg reg = newReg(ctx);
+		prog.addInstr(OpCode.Const, symboltable.getOffset(ctx), reg);
+		
+		Reg exprReg = regs.get(ctx.expr());
+		prog.addInstr(OpCode.Compute, Operator.Add, reg, exprReg, reg);
+		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
+		freeReg(exprReg);
+		
+		return i;
 	}
 	
 	@Override

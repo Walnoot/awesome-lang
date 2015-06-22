@@ -1,6 +1,8 @@
 package awesome.lang;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -41,12 +43,25 @@ public class Compiler {
 		private ArrayList<String> errors;
 		
 		public CompilationException(String text, ArrayList<String> errors) {
-			super(text);
+			super(text + ": " + errors);
 			this.errors = errors;
 		}
 		
 		public ArrayList<String> getErrors() {
 			return errors;
 		}
+	}
+	
+	public static void main(String[] args) throws CompilationException, IOException {
+		String prog = "";
+		for (int i = 0; i < args.length; i++) {
+			if(i != 0) prog += " ";
+			prog += args[i];
+		}
+		
+		System.out.printf("Compiling %s\n", prog);
+		
+		Program program = new Compiler().compile(prog);
+		program.writeSprockell("comp.hs");
 	}
 }
