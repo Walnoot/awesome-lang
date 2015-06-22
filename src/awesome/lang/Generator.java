@@ -113,6 +113,8 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			prog.addInstr(endLabel, OpCode.Nop);
 		}
 		
+		freeReg(ctx.expr());
+		
 		return i;
 	}
 	
@@ -129,6 +131,8 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		visit(ctx.stat());
 		prog.addInstr(OpCode.Jump, Target.abs(compLabel));
 		prog.addInstr(endLabel, OpCode.Nop);
+		
+		freeReg(ctx.expr());
 		
 		return i;
 	}
@@ -273,6 +277,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		regs.put(ctx, reg);
 		
 		return reg;
+	}
+	
+	private void freeReg(ParseTree ctx){
+		freeReg(regs.get(ctx));
 	}
 	
 	private void freeReg(Reg reg) {
