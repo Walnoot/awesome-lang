@@ -16,6 +16,7 @@ stat: type ID SEMI						#declStat
 	| block								#blockStat
 	;
 
+//TODO: rename this to variable, fix everything that breaks, methods in generator that return the address of a variable
 //target of assignment
 target: ID				#idTarget
 	  | ID LSB expr RSB	#arrayTarget
