@@ -18,8 +18,10 @@ import awesome.lang.GrammarParser.BoolTypeContext;
 import awesome.lang.GrammarParser.CompExprContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
 import awesome.lang.GrammarParser.DeclStatContext;
+import awesome.lang.GrammarParser.DoStatContext;
 import awesome.lang.GrammarParser.ExprContext;
 import awesome.lang.GrammarParser.FalseExprContext;
+import awesome.lang.GrammarParser.ForStatContext;
 import awesome.lang.GrammarParser.IdExprContext;
 import awesome.lang.GrammarParser.IdTargetContext;
 import awesome.lang.GrammarParser.IfStatContext;
@@ -29,14 +31,16 @@ import awesome.lang.GrammarParser.NumExprContext;
 import awesome.lang.GrammarParser.ParExprContext;
 import awesome.lang.GrammarParser.PrefixExprContext;
 import awesome.lang.GrammarParser.ProgramContext;
+import awesome.lang.GrammarParser.StatContext;
 import awesome.lang.GrammarParser.TrueExprContext;
 import awesome.lang.GrammarParser.WhileStatContext;
 import awesome.lang.model.Type;
 import awesome.lang.model.Type.ArrayType;
 
 public class TypeChecker extends GrammarBaseListener {
-	
+
 	private ParseTreeProperty<Type> types = new ParseTreeProperty<Type>();
+	private ParseTreeProperty<Boolean> blockNewScope = new ParseTreeProperty<Boolean>();
 	private ArrayList<String> errors 	  = new ArrayList<String>();
 	private SymbolTable variables		  = new SymbolTable();
 
@@ -44,7 +48,7 @@ public class TypeChecker extends GrammarBaseListener {
 	private void addError(String string, ParserRuleContext ctx) {
 		
 		Token token = ctx.getStart();
-		String error = string.replace("{expr}", ctx.getText());
+		String error = string.replace("{expr}", "\"" + ctx.getText() + "\"");
 		this.errors.add(error + " (line "+token.getLine() + ":" + token.getCharPositionInLine() + ")");
 		
 	}
@@ -60,16 +64,25 @@ public class TypeChecker extends GrammarBaseListener {
 	@Override
 	public void enterBlock(BlockContext ctx) {
 		
-		if (ctx.parent.getClass() != ProgramContext.class)
-			this.variables.openScope(ctx);
+		if (this.blockNewScope.get(ctx) == true)
+			return;
 		
+		this.variables.openScope(ctx);
+		
+	}
+	
+	@Override 
+	public void enterProgram(ProgramContext ctx) {
+		this.blockNewScope.put(ctx.block(), true);
 	}
 	
 	@Override
 	public void exitBlock(BlockContext ctx) {
+
+		if (this.blockNewScope.get(ctx) == true)
+			return;
 		
-		if (ctx.parent.getClass() != ProgramContext.class)
-			this.variables.closeScope();
+		this.variables.closeScope();
 		
 	}
 
@@ -78,7 +91,7 @@ public class TypeChecker extends GrammarBaseListener {
 		// add new variable to scope (uninitialized)
 		Type type = types.get(ctx.type());
 		if (this.variables.add(ctx, type) == false) {
-			this.addError("Redeclaration of variable "+ctx.ID().getText()+" in expression: \"{expr}\"", ctx);
+			this.addError("Redeclaration of variable "+ctx.ID().getText()+" in expression: {expr}", ctx);
 		}
 	}
 	
@@ -105,7 +118,7 @@ public class TypeChecker extends GrammarBaseListener {
 		// add new variable to scope (with value)
 		Type type = this.types.get(ctx.expr());
 		if (this.variables.add(ctx, type) == false) {
-			this.addError("Redeclaration of variable "+ctx.ID().getText()+" in expression: \"{expr}\"", ctx);
+			this.addError("Redeclaration of variable "+ctx.ID().getText()+" in expression: {expr}", ctx);
 		}
 	}
 
@@ -115,7 +128,7 @@ public class TypeChecker extends GrammarBaseListener {
 		String name = getID(ctx);
 		
 		if (this.variables.contains(name) == false) {
-			this.addError("Assignment of undeclared variable "+name+" in expression: \"{expr}\"", ctx);
+			this.addError("Assignment of undeclared variable "+name+" in expression: {expr}", ctx);
 		} else {
 			Type exptype = this.types.get(ctx.expr());
 			Type vartype = this.variables.getType(name);
@@ -124,30 +137,44 @@ public class TypeChecker extends GrammarBaseListener {
 				vartype = ((ArrayType) vartype).getType();
 				
 				if(!exptype.equals(vartype)){
-					addError("Cannot assign " + exptype + " to " + vartype + " in \"{expr}\"", ctx);
+					addError("Cannot assign " + exptype + " to " + vartype + " in {expr}", ctx);
 				}
 			}
 			
 			if (!vartype.equals(exptype)) {
-				this.addError("Assignment of type "+exptype.toString()+" to variable of type "+vartype.toString()+" in expression \"{expr}\"", ctx);
+				this.addError("Assignment of type "+exptype.toString()+" to variable of type "+vartype.toString()+" in expression {expr}", ctx);
 			} else {
 				this.variables.assign(ctx);
 			}
 		}
 		
 	}
+
+	@Override
+	public void exitForStat(ForStatContext ctx) {
+		if (this.types.get(ctx.expr()) != Type.BOOL) {
+			this.addError("Expression in for-statement does not return boolean: {expr}", ctx);
+		}
+	}
+
+	@Override
+	public void exitDoStat(DoStatContext ctx) {
+		if (this.types.get(ctx.expr()) != Type.BOOL) {
+			this.addError("Expression in do-until-statement does not return boolean: {expr}", ctx);
+		}
+	}
 	
 	@Override
 	public void exitWhileStat(WhileStatContext ctx) {
 		if (this.types.get(ctx.expr()) != Type.BOOL) {
-			this.addError("Expression in while-statement does not return boolean: \"{expr}\"", ctx);
+			this.addError("Expression in while-statement does not return boolean: {expr}", ctx);
 		}
 	}
 
 	@Override
 	public void exitIfStat(IfStatContext ctx) {
 		if (this.types.get(ctx.expr()) != Type.BOOL) {
-			this.addError("Expression in if-statement does not return boolean: \"{expr}\"", ctx);
+			this.addError("Expression in if-statement does not return boolean: {expr}", ctx);
 		}
 	}
 
@@ -157,14 +184,14 @@ public class TypeChecker extends GrammarBaseListener {
 		// not statement
 		if (ctx.prefixOp().NOT() != null) {
 			if (this.types.get(ctx.expr()) != Type.BOOL){
-				this.addError("Subexpression is not of type boolean in \"{expr}\"", ctx);
+				this.addError("Subexpression is not of type boolean in {expr}", ctx);
 			}
 			this.types.put(ctx, Type.BOOL);
 			
 		// unary minus
 		} else {
 			if(this.types.get(ctx.expr()) != Type.INT){
-				this.addError("Subexpression is not of type integer in \"{expr}\"", ctx);
+				this.addError("Subexpression is not of type integer in {expr}", ctx);
 			}
 			this.types.put(ctx, Type.INT);
 		}
@@ -177,9 +204,9 @@ public class TypeChecker extends GrammarBaseListener {
 		
 		// valid types?
 		if (this.types.get(ctx.expr(0)) != Type.BOOL){
-			this.addError("First child of expression: \"{expr}\" is no boolean", ctx);
+			this.addError("First child of expression: {expr} is no boolean", ctx);
 		} else if(this.types.get(ctx.expr(1)) != Type.BOOL) {
-			this.addError("Second child of expression: \"{expr}\" is no boolean", ctx);
+			this.addError("Second child of expression: {expr} is no boolean", ctx);
 		}
 		
 		this.types.put(ctx, Type.BOOL);
@@ -193,11 +220,11 @@ public class TypeChecker extends GrammarBaseListener {
 		
 		// valid types?
 		if (this.types.get(child1) != this.types.get(child2)) {
-			this.addError("Comparing "+this.types.get(child1)+" with "+this.types.get(child2) + " in \"{expr}\"", ctx);
+			this.addError("Comparing "+this.types.get(child1)+" with "+this.types.get(child2) + " in {expr}", ctx);
 		} else if (this.types.get(child1) == Type.INT) {
 			this.types.put(ctx, Type.BOOL);
 		} else if (ctx.compOp().EQ() == null && ctx.compOp().NE() == null) {// bool comparison with a wrong operand
-			this.addError("Doing an impossible comparison on two booleans: \"{expr}\"", ctx);
+			this.addError("Doing an impossible comparison on two booleans: {expr}", ctx);
 		}
 		
 		this.types.put(ctx, Type.BOOL);
@@ -209,9 +236,9 @@ public class TypeChecker extends GrammarBaseListener {
 		
 		// valid types? 
 		if (this.types.get(ctx.expr(0)) != Type.INT){
-			this.addError("First child of expression: \"{expr}\" is no integer", ctx);
+			this.addError("First child of expression: {expr} is no integer", ctx);
 		} else if (this.types.get(ctx.expr(1)) != Type.INT) {
-			this.addError("Second child of expression: \"{expr}\" is no integer", ctx);
+			this.addError("Second child of expression: {expr} is no integer", ctx);
 		}
 		
 		this.types.put(ctx, Type.INT);
@@ -223,9 +250,9 @@ public class TypeChecker extends GrammarBaseListener {
 		
 		// valid types?
 		if (this.types.get(ctx.expr(0)) != Type.INT){
-			this.addError("First child of expression: \"{expr}\" is no integer", ctx);
+			this.addError("First child of expression: {expr} is no integer", ctx);
 		} else if (this.types.get(ctx.expr(1)) != Type.INT) {
-			this.addError("Second child of expression: \"{expr}\" is no integer", ctx);
+			this.addError("Second child of expression: {expr} is no integer", ctx);
 		}
 		
 		this.types.put(ctx, Type.INT);
@@ -256,7 +283,7 @@ public class TypeChecker extends GrammarBaseListener {
 	public void exitIdExpr(IdExprContext ctx) {
 		String name = ctx.ID().getText();
 		if (this.variables.contains(name) == false) {
-			this.addError("use of undeclared variable "+name+" in expression: \"{expr}\"", ctx);
+			this.addError("use of undeclared variable "+name+" in expression: {expr}", ctx);
 			this.types.put(ctx, Type.BOOL); // default type to prevent lookup errors
 		} else {
 			this.variables.assign(ctx);
@@ -269,7 +296,7 @@ public class TypeChecker extends GrammarBaseListener {
 	public void exitArrayExpr(ArrayExprContext ctx) {
 		Type type = variables.getType(ctx.ID().getText());
 		if(!type.isArray()) {
-			addError("Not an array in expression: \"{expr}\"", ctx);
+			addError("Not an array in expression: {expr}", ctx);
 		}
 		
 		if(types.get(ctx.expr()) != Type.INT) {

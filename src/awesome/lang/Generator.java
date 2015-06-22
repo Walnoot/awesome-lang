@@ -15,8 +15,10 @@ import awesome.lang.GrammarParser.BoolExprContext;
 import awesome.lang.GrammarParser.CompExprContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
 import awesome.lang.GrammarParser.DeclStatContext;
+import awesome.lang.GrammarParser.DoStatContext;
 import awesome.lang.GrammarParser.ExprContext;
 import awesome.lang.GrammarParser.FalseExprContext;
+import awesome.lang.GrammarParser.ForStatContext;
 import awesome.lang.GrammarParser.IdExprContext;
 import awesome.lang.GrammarParser.IdTargetContext;
 import awesome.lang.GrammarParser.IfStatContext;
@@ -133,6 +135,51 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		return i;
 	}
 	
+	@Override
+	public Instruction visitForStat(ForStatContext ctx) {
+		// init
+		Instruction i = visit(ctx.varSubStat(0));
+		Instruction check = visit(ctx.expr());
+		Label checkLabel  = new Label("for_check");
+		Label endLabel    = new Label("for_end");
+		
+		// check
+		check.setLabel(checkLabel);
+		Reg reg = regs.get(ctx.expr());
+		prog.addInstr(OpCode.Compute,Operator.Equal, Reg.Zero, reg, reg);
+		prog.addInstr(OpCode.Branch, reg, Target.abs(endLabel));
+		this.freeReg(reg);
+		
+		// body
+		visit(ctx.stat());
+		visit(ctx.varSubStat(1));
+		
+		// check again & endlabel
+		prog.addInstr(OpCode.Jump, Target.abs(checkLabel));
+		prog.addInstr(endLabel, OpCode.Nop);
+		
+		return i;
+	}
+	
+	@Override
+	public Instruction visitDoStat(DoStatContext ctx) {
+		// body
+		Instruction i = visit(ctx.stat());
+		Label start   = new Label("do_start");
+		i.setLabel(start);
+		visit(ctx.expr());
+		
+		// jump back?
+		Reg reg = regs.get(ctx.expr());
+		prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);
+		prog.addInstr(OpCode.Branch, reg, Target.abs(start));
+		this.freeReg(reg);
+		
+		return i;
+		
+		
+	}
+	 
 	@Override
 	public Instruction visitWhileStat(WhileStatContext ctx) {
 		Instruction i = visit(ctx.expr());
