@@ -36,7 +36,7 @@ public class Type {
 		private Type type;
 		
 		private ArrayType(Type type, int size) {
-			super(size, String.format("[%s:%d]", type.toString(), size));
+			super(size*type.getSize(), String.format("[%s:%d]", type.toString(), size));
 			this.type = type;
 		}
 		
