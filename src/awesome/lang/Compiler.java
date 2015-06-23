@@ -28,7 +28,7 @@ public class Compiler {
 		
 		// walk through
 		TypeChecker checker = new TypeChecker();
-		new ParseTreeWalker().walk(checker, tree);
+		tree.accept(checker);
 		
 		if (checker.getErrors().size() > 0) {
 			throw new CompilationException("Error(s) during type checking", checker.getErrors());

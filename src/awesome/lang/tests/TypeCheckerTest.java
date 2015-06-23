@@ -42,7 +42,7 @@ public class TypeCheckerTest {
  		
  		// walk through
  		TypeChecker listener = new TypeChecker();
- 		(new ParseTreeWalker()).walk(listener, tree);
+ 		tree.accept(listener);
  		
  		// list errors
  		ArrayList<String> errors = listener.getErrors();
@@ -62,7 +62,7 @@ public class TypeCheckerTest {
 							  + "	if (test2)"
 							  + "		test1 = not test2;"
 							  + "	else {"
-							  + "		asm \"debug \"\"Test is false\"\"\";"
+							  + "		test2 = false;" 
 							  + "	}"
 							  +	"	if (test1) {"
 							  + "		int test2 = 5;"

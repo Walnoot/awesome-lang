@@ -34,11 +34,13 @@ public class FunctionTable {
 	
 	public boolean contains(String name, Type.FunctionType type) {
 		List<FunctionType> types = this.getTypes(name);
-		for (FunctionType tCheck : types) {
-			if (tCheck.equals(type))
-				return true;
+		if(types != null) {
+			for (FunctionType tCheck : types) {
+				if (tCheck.equals(type))
+					return true;
+			}
 		}
-		
+			
 		return false;
 	}
 	

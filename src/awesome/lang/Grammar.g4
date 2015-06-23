@@ -32,9 +32,9 @@ target: ID					#idTarget
 
 argument: type ID;
 
-function: type ID LB argument* RB COLON stat;
+function: type ID LB (argument (COMMA argument)*)? RB COLON stat;
 
-functionCall: ID LB argument* RB;
+functionCall: ID LB (expr (COMMA expr)*)? RB;
 
 type: INT						#intType
 	| BOOL						#boolType

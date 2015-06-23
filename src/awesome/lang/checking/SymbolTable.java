@@ -5,6 +5,7 @@ import java.util.HashMap;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 
+import awesome.lang.GrammarParser.ArgumentContext;
 import awesome.lang.GrammarParser.ArrayExprContext;
 import awesome.lang.GrammarParser.ArrayTargetContext;
 import awesome.lang.GrammarParser.AssignStatContext;
@@ -68,6 +69,17 @@ public class SymbolTable{
 		
 	}
 	public boolean add(DeclStatContext ctx, Type type) {
+		
+		boolean success = this.getCurrentScope().add(ctx.ID().getText(), type);
+		if (success) {
+			this.contextmap.put(ctx,  this.getCurrentScope());
+		}
+		
+		return success;
+		
+	}
+
+	public boolean add(ArgumentContext ctx, Type type) {
 		
 		boolean success = this.getCurrentScope().add(ctx.ID().getText(), type);
 		if (success) {
