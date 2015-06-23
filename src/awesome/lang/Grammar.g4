@@ -6,15 +6,20 @@ program: block;
 
 block: LCB stat* RCB;
 
-stat: type ID SEMI						#declStat
-	| target ASSIGN expr SEMI			#assignStat
-	| type ID ASSIGN expr SEMI			#declAssignStat
-	| ASM STRING SEMI					#asmStat
-	| PRINT LB expr RB SEMI				#printStat //temp, move to func later
-	| IF LB expr RB stat  (ELSE stat)?	#ifStat
-	| WHILE LB expr RB stat				#whileStat
-	| block								#blockStat
+stat: varSubStat SEMI										#varStat
+	| ASM STRING SEMI										#asmStat
+	| PRINT LB expr RB SEMI									#printStat //temp, move to func later
+	| IF LB expr RB stat  (ELSE stat)?						#ifStat
+	| WHILE LB expr RB stat									#whileStat
+	| FOR LB varSubStat SEMI expr SEMI varSubStat RB stat	#forStat
+	| DO stat UNTIL LB expr RB SEMI							#doStat
+	| block													#blockStat
 	;
+	
+varSubStat: type ID #declStat
+	   | target ASSIGN expr #assignStat
+	   | type ID ASSIGN expr #declAssignStat
+	   ;
 
 //TODO: rename this to variable, fix everything that breaks, methods in generator that return the address of a variable
 //target of assignment

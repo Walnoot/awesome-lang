@@ -13,6 +13,9 @@ COLON: ':';
 IF: 'if';
 ELSE: 'else';
 WHILE: 'while';
+FOR: 'for';
+DO: 'do';
+UNTIL: 'until';
 PRINT: 'print';//temp, move to func later
 ASM: 'asm';
 SEMI: ';';
