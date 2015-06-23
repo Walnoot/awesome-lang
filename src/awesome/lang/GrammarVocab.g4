@@ -41,10 +41,10 @@ AND: 'and';
 OR: 'or';
 NOT: 'not';
 
+STRING: '"' (~'"' | '\\"')* '"';
+
 ID: LETTER (LETTER | DIGIT)*;
 NUM: DIGIT+;
-
-STRING: '"' (~'"' | '\\\"')* '"';
 
 WS: [\t\r\n ]+ -> skip;
 LINECOMMENT: '//' (~[\r\n])* -> skip;
