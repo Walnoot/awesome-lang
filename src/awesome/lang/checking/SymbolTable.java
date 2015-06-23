@@ -84,15 +84,7 @@ public class SymbolTable{
 	 * @return
 	 */
 	public boolean assign(AssignStatContext ctx) {
-		String id = null;
-		
-		if(ctx.target() instanceof IdTargetContext){
-			IdTargetContext target = (IdTargetContext) ctx.target();
-			id = target.ID().getText();
-		} else if (ctx.target() instanceof ArrayTargetContext){
-			ArrayTargetContext target = (ArrayTargetContext) ctx.target();
-			id = target.ID().getText();
-		}
+		String id = TypeChecker.getID(ctx);
 		
 		return assign(ctx, id);
 	}

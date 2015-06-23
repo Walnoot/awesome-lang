@@ -62,6 +62,7 @@ public class CompilerTest {
 		testProgram("{ [int:5] x; x[0] = 5; print(x[0]);}", "5");
 		testProgram("{ int x=1;[int:2] y; int z=4; y[0]=2; y[1]=9; print(x); print(z);}", "14");
 		testProgram("{ int i=0;[int:4] x; while(i < 4) {x[i] = i; i = i + 1;} print(x[3]);}", "3");
+		testProgram("{ [[int:2]:5] x; x[0][0] = 5; }", "");
 	}
 
 	@Test
@@ -75,7 +76,16 @@ public class CompilerTest {
 	}
 	
 	private void testProgram(String prog, String expected) throws IOException, InterruptedException, CompilationException {
-		compiler.compile(prog).writeSprockell("test.hs");
+		try{
+			compiler.compile(prog).writeSprockell("test.hs");
+		} catch(CompilationException e) {
+			//print type errors for better debug
+			for(String error : e.getErrors()){
+				System.out.println(error);
+			}
+			
+			throw e;
+		}
 		
 		Process process = Runtime.getRuntime().exec("ghc -isprockell/src gen/test.hs -e main");
 
