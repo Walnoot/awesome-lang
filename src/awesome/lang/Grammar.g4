@@ -12,11 +12,13 @@ stat: varSubStat SEMI										#varStat
 	| ASM STRING SEMI										#asmStat
 	| PRINT LB expr RB SEMI									#printStat //temp, move to func later
 	| IF LB expr RB stat  (ELSE stat)?						#ifStat
-	| WHILE LB expr RB stat									#whileStat
-	| FOR LB varSubStat SEMI expr SEMI varSubStat RB stat	#forStat
-	| DO stat WHILE LB expr RB SEMI							#doStat
-	| block													#blockStat
+	| WHILE LB expr RB stat									#whileStat // break?
+	| FOR LB varSubStat SEMI expr SEMI varSubStat RB stat	#forStat   // break?
+	| DO stat WHILE LB expr RB SEMI							#doStat    // break?
+	| functionCall SEMI										#funcStat  
+	| block													#blockStat 
 	;
+
 
 varSubStat: type ID				#declStat
 	   | target ASSIGN expr		#assignStat
@@ -28,7 +30,11 @@ target: ID					#idTarget
 	  | target LSB expr RSB	#arrayTarget
 	  ;
 
-function: type ID LB (type ID) * RB COLON stat;
+argument: type ID;
+
+function: type ID LB (argument (COMMA argument)*)? RB COLON stat;
+
+functionCall: ID LB (expr (COMMA expr)*)? RB;
 
 type: INT						#intType
 	| BOOL						#boolType
@@ -47,6 +53,7 @@ expr: prefixOp expr			#prefixExpr
 	| NUM					#numExpr
 	| TRUE					#trueExpr
 	| FALSE					#falseExpr
+	| functionCall			#funcExpr
 	;
 
 /** Prefix operator. */

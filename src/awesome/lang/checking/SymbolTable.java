@@ -5,6 +5,7 @@ import java.util.HashMap;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 
+import awesome.lang.GrammarParser.ArgumentContext;
 import awesome.lang.GrammarParser.ArrayExprContext;
 import awesome.lang.GrammarParser.ArrayTargetContext;
 import awesome.lang.GrammarParser.AssignStatContext;
@@ -21,16 +22,21 @@ public class SymbolTable{
 	
 	public SymbolTable() {
 		// outer scope
-		this.declarations.add(new Scope(null, null));
+		this.declarations.add(new Scope(null, null, true));
 	}
 
+	
 	public Scope getCurrentScope() {
 		return this.declarations.get(this.declarations.size()-1);
 	}
 	
 	/** Adds a next deeper scope level. */
 	public void openScope(ParserRuleContext ctx) {
-		declarations.add(new Scope(ctx, this.getCurrentScope()));
+		this.openScope(ctx, false);
+	}
+
+	public void openScope(ParserRuleContext ctx, boolean resetOffset) {
+		declarations.add(new Scope(ctx, this.getCurrentScope(), resetOffset));
 	}
 
 	/** Removes the deepest scope level.
@@ -63,6 +69,17 @@ public class SymbolTable{
 		
 	}
 	public boolean add(DeclStatContext ctx, Type type) {
+		
+		boolean success = this.getCurrentScope().add(ctx.ID().getText(), type);
+		if (success) {
+			this.contextmap.put(ctx,  this.getCurrentScope());
+		}
+		
+		return success;
+		
+	}
+
+	public boolean add(ArgumentContext ctx, Type type) {
 		
 		boolean success = this.getCurrentScope().add(ctx.ID().getText(), type);
 		if (success) {
@@ -214,5 +231,6 @@ public class SymbolTable{
 		throw new IllegalArgumentException("Variable not found!");
 		
 	}
+
 	
 }

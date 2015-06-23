@@ -16,9 +16,12 @@ public class Scope {
 	private final HashMap<String, Integer> offsets = new HashMap<String, Integer>();
 	private int offset = 0;
 
-	public Scope(ParserRuleContext ctx, Scope parent) {
+	public Scope(ParserRuleContext ctx, Scope parent, boolean resetOffset) {
 		this.parent = parent;
 		this.identifier = ctx;
+		if (resetOffset == false)
+			this.offset = parent.getOffset();
+		
 	}
 
 	public void addChild(Scope child) {
@@ -26,7 +29,6 @@ public class Scope {
 	}
 
 	public boolean add(String id, Type type) {
-
 		if (this.declarations.containsKey(id))
 			return false;
 
@@ -34,7 +36,6 @@ public class Scope {
 		this.offsets.put(id, this.offset);
 		this.offset += type.getSize();
 		return true;
-
 	}
 
 	public boolean containsKey(String id) {
@@ -67,6 +68,10 @@ public class Scope {
 
 		return this.offsets.get(id);
 
+	}
+	
+	public int getOffset() {
+		return this.offset;
 	}
 
 }
