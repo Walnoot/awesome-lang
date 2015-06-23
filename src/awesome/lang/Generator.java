@@ -266,14 +266,16 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		int offset = symboltable.getOffset(parent);
 		Type type = symboltable.getType(parent);
 		
+		System.out.println(type);
+		
 		Reg reg = newReg(ctx);
 		Instruction i = visit(ctx.expr());
 		Reg exprReg = regs.get(ctx.expr());
 		
 		prog.addInstr(OpCode.Const, offset, reg);
 		
-		Type subType = type;
-		//Type subType = ((ArrayType) type).getType();
+//		Type subType = type;
+		Type subType = ((ArrayType) type).getType();
 		if(subType.getSize() != 1) {//no need to multiply by one
 			Reg multReg = newReg();
 			prog.addInstr(OpCode.Const, subType.getSize(), multReg);
