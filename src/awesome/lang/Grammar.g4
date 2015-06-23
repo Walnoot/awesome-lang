@@ -23,10 +23,9 @@ varSubStat: type ID				#declStat
 	   | type ID ASSIGN expr	#declAssignStat
 	   ;
 
-//TODO: rename this to variable, fix everything that breaks, methods in generator that return the address of a variable
-//target of assignment
-target: ID				#idTarget
-	  | ID LSB expr RSB	#arrayTarget
+//target of assignment or expr
+target: ID					#idTarget
+	  | target LSB expr RSB	#arrayTarget
 	  ;
 
 function: type ID LB (type ID) * RB COLON stat;

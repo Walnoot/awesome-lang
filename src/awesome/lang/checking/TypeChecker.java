@@ -307,18 +307,16 @@ public class TypeChecker extends GrammarBaseListener {
 	}
 	
 	public static String getID(AssignStatContext ctx){
-		String name;
-		
-		if(ctx.target() instanceof IdTargetContext){
-			IdTargetContext target = (IdTargetContext) ctx.target();
-			name = target.ID().getText();
-		} else if (ctx.target() instanceof ArrayTargetContext){
-			ArrayTargetContext target = (ArrayTargetContext) ctx.target();
-			name = target.ID().getText();
+		return getID(ctx.target());
+	}
+	
+	private static String getID(TargetContext ctx){
+		if(ctx instanceof IdTargetContext) {
+			return ((IdTargetContext) ctx).ID().getText();
+		} else if (ctx instanceof ArrayTargetContext) {
+			return getID(((ArrayTargetContext) ctx).target());
 		} else {
-			throw new UnsupportedOperationException("Unknown target class " + ctx.target().getClass());
+			throw new UnsupportedOperationException("Unknown target class " + ctx.getClass());
 		}
-		
-		return name;
 	}
 }

@@ -33,15 +33,7 @@ import awesome.lang.GrammarParser.TrueExprContext;
 import awesome.lang.GrammarParser.VarStatContext;
 import awesome.lang.GrammarParser.WhileStatContext;
 import awesome.lang.checking.SymbolTable;
-import awesome.lang.model.Instruction;
-import awesome.lang.model.Label;
-import awesome.lang.model.MemAddr;
-import awesome.lang.model.OpCode;
-import awesome.lang.model.Operator;
-import awesome.lang.model.Program;
-import awesome.lang.model.Reg;
-import awesome.lang.model.Target;
-import awesome.lang.model.Type;
+import awesome.lang.model.*;
 import awesome.lang.model.Type.ArrayType;
 
 /**
@@ -52,7 +44,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	private static final int TRUE = 1, FALSE = 0;
 	
 	private ParseTreeProperty<Reg> regs;
-	private ParseTreeProperty<MemAddr> addresses;//for assignment targets
+//	private ParseTreeProperty<MemAddr> addresses;//for assignment targets
 	private ArrayList<Reg> freeRegs;
 	private Program prog;
 
@@ -66,7 +58,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		prog = new Program(1);
 		freeRegs = new ArrayList<Reg>(Arrays.asList(Reg.RegA, Reg.RegB, Reg.RegC, Reg.RegD));
 		regs = new ParseTreeProperty<Reg>();
-		addresses = new ParseTreeProperty<MemAddr>();
+//		addresses = new ParseTreeProperty<MemAddr>();
 		
 		tree.accept(this);
 		
@@ -116,16 +108,11 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	public Instruction visitAssignStat(AssignStatContext ctx) {
 		Instruction targetI = visit(ctx.target());
 		
-		Instruction exprI = assign(ctx.expr(), addresses.get(ctx.target()));
+		Reg reg = regs.get(ctx.target());
+		assign(ctx.expr(), MemAddr.deref(reg));
+		freeReg(reg);
 		
-		if(targetI == null){
-			//target didnt emit instructions
-			return exprI;
-		} else {
-			freeReg(ctx.target());
-			
-			return targetI;
-		}
+		return targetI;
 	}
 	
 	@Override
@@ -254,25 +241,34 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitIdTarget(IdTargetContext ctx) {
-		MemAddr addr = MemAddr.direct(symboltable.getOffset((AssignStatContext) ctx.getParent()));
-		addresses.put(ctx, addr);
+		ParserRuleContext current = ctx;
+		do {
+			current = current.getParent();
+		} while(!(current instanceof AssignStatContext));
 		
-		return null;
+		int offset = symboltable.getOffset((AssignStatContext) current);
+		
+//		MemAddr addr = MemAddr.direct(offset);
+//		addresses.put(ctx, addr);
+		
+		Reg reg = newReg(ctx);
+		return prog.addInstr(OpCode.Const, offset, reg);
 	}
 	
 	@Override
 	public Instruction visitArrayTarget(ArrayTargetContext ctx) {
 		AssignStatContext parent = (AssignStatContext) ctx.getParent();
-		int offset = symboltable.getOffset(parent);
 		Type type = symboltable.getType(parent);
 		
 		System.out.println(type);
 		
-		Reg reg = newReg(ctx);
-		Instruction i = visit(ctx.expr());
+		Instruction i = visit(ctx.target());
+		Reg reg = regs.get(ctx.target());
+		regs.put(ctx, reg);
+		visit(ctx.expr());
 		Reg exprReg = regs.get(ctx.expr());
 		
-		prog.addInstr(OpCode.Const, offset, reg);
+		//prog.addInstr(OpCode.Const, offset, reg);
 		
 //		Type subType = type;
 		Type subType = ((ArrayType) type).getType();
@@ -286,7 +282,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		prog.addInstr(OpCode.Compute, Operator.Add, reg, exprReg, reg);
 		freeReg(exprReg);
 		
-		addresses.put(ctx, MemAddr.deref(reg));
+//		addresses.put(ctx, MemAddr.deref(reg));
 		
 		return i;
 	}
