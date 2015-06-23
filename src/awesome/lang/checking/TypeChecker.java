@@ -6,8 +6,9 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
-import awesome.lang.GrammarBaseListener;
+import awesome.lang.*;
 import awesome.lang.GrammarParser.AddSubExprContext;
+import awesome.lang.GrammarParser.ArgumentContext;
 import awesome.lang.GrammarParser.ArrayExprContext;
 import awesome.lang.GrammarParser.ArrayTargetContext;
 import awesome.lang.GrammarParser.ArrayTypeContext;
@@ -22,6 +23,8 @@ import awesome.lang.GrammarParser.DoStatContext;
 import awesome.lang.GrammarParser.ExprContext;
 import awesome.lang.GrammarParser.FalseExprContext;
 import awesome.lang.GrammarParser.ForStatContext;
+import awesome.lang.GrammarParser.FunctionCallContext;
+import awesome.lang.GrammarParser.FunctionContext;
 import awesome.lang.GrammarParser.IdExprContext;
 import awesome.lang.GrammarParser.IdTargetContext;
 import awesome.lang.GrammarParser.IfStatContext;
@@ -31,11 +34,11 @@ import awesome.lang.GrammarParser.NumExprContext;
 import awesome.lang.GrammarParser.ParExprContext;
 import awesome.lang.GrammarParser.PrefixExprContext;
 import awesome.lang.GrammarParser.ProgramContext;
-import awesome.lang.GrammarParser.TargetContext;
 import awesome.lang.GrammarParser.TrueExprContext;
 import awesome.lang.GrammarParser.WhileStatContext;
 import awesome.lang.model.Type;
 import awesome.lang.model.Type.ArrayType;
+import awesome.lang.model.Type.FunctionType;
 
 public class TypeChecker extends GrammarBaseListener {
 
@@ -43,7 +46,7 @@ public class TypeChecker extends GrammarBaseListener {
 	private ParseTreeProperty<Boolean> blockNewScope = new ParseTreeProperty<Boolean>();
 	private ArrayList<String> errors 	  = new ArrayList<String>();
 	private SymbolTable variables		  = new SymbolTable();
-
+	private FunctionTable functions		  = new FunctionTable();
 
 	private void addError(String string, ParserRuleContext ctx) {
 		
@@ -85,6 +88,42 @@ public class TypeChecker extends GrammarBaseListener {
 		this.variables.closeScope();
 		
 	}
+	
+	@Override 
+	public void enterFunction(FunctionContext ctx) {
+		this.variables.openScope(ctx, true);
+	}
+	
+	@Override
+	public void exitFunction(FunctionContext ctx) {
+		this.variables.closeScope();
+		Type retType = this.types.get(ctx.type());
+		Type[] argTypes = new Type[ctx.argument().size()];
+		for (int i = 0; i < ctx.argument().size(); i++) {
+			argTypes[i] = this.types.get(ctx.argument(i));
+		}
+		
+		FunctionType fType = Type.function(retType, argTypes); 
+		String name  	   = ctx.ID().getText(); 
+		if (this.functions.contains(name, fType)) {
+			this.addError("Double function definition with the same arguments in expression: {expr}", ctx);
+		} else {
+			this.functions.addFunction(name, fType);
+		}
+		
+	}
+	
+	@Override
+	public void exitFunctionCall(FunctionCallContext ctx) {
+		
+		
+		
+	}
+	
+	@Override 
+	public void exitArgument(ArgumentContext ctx) {
+		this.types.put(ctx, this.types.get(ctx.type()));
+	}
 
 	@Override
 	public void exitDeclStat(DeclStatContext ctx) {
@@ -116,9 +155,13 @@ public class TypeChecker extends GrammarBaseListener {
 	@Override
 	public void exitDeclAssignStat(DeclAssignStatContext ctx) {
 		// add new variable to scope (with value)
-		Type type = this.types.get(ctx.expr());
+		Type type = types.get(ctx.type());
+		Type exprtype = this.types.get(ctx.expr());
 		if (this.variables.add(ctx, type) == false) {
 			this.addError("Redeclaration of variable "+ctx.ID().getText()+" in expression: {expr}", ctx);
+		}
+		if (type.equals(exprtype) == false) {
+			this.addError("type of variable "+ctx.ID().getText()+" is not equal to type of expression: {expr}", ctx);
 		}
 	}
 

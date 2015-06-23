@@ -21,16 +21,21 @@ public class SymbolTable{
 	
 	public SymbolTable() {
 		// outer scope
-		this.declarations.add(new Scope(null, null));
+		this.declarations.add(new Scope(null, null, true));
 	}
 
+	
 	public Scope getCurrentScope() {
 		return this.declarations.get(this.declarations.size()-1);
 	}
 	
 	/** Adds a next deeper scope level. */
 	public void openScope(ParserRuleContext ctx) {
-		declarations.add(new Scope(ctx, this.getCurrentScope()));
+		this.openScope(ctx, false);
+	}
+
+	public void openScope(ParserRuleContext ctx, boolean resetOffset) {
+		declarations.add(new Scope(ctx, this.getCurrentScope(), resetOffset));
 	}
 
 	/** Removes the deepest scope level.
@@ -222,5 +227,6 @@ public class SymbolTable{
 		throw new IllegalArgumentException("Variable not found!");
 		
 	}
+
 	
 }
