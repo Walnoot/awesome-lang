@@ -61,6 +61,7 @@ public class CompilerTest {
 	public void testArrays() throws IOException, InterruptedException, CompilationException {
 		testProgram("{ [int:5] x; x[0] = 5; print(x[0]);}", "5");
 		testProgram("{ int x=1;[int:2] y; int z=4; y[0]=2; y[1]=9; print(x); print(z);}", "14");
+		testProgram("{ int i=0;[int:4] x; while(i < 4) {x[i] = i; i = i + 1;} print(x[3]);}", "3");
 	}
 
 	@Test

@@ -15,7 +15,6 @@ import awesome.lang.GrammarParser.BlockContext;
 import awesome.lang.GrammarParser.BoolExprContext;
 import awesome.lang.GrammarParser.CompExprContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
-import awesome.lang.GrammarParser.DeclStatContext;
 import awesome.lang.GrammarParser.DoStatContext;
 import awesome.lang.GrammarParser.ExprContext;
 import awesome.lang.GrammarParser.FalseExprContext;
@@ -42,6 +41,8 @@ import awesome.lang.model.Operator;
 import awesome.lang.model.Program;
 import awesome.lang.model.Reg;
 import awesome.lang.model.Target;
+import awesome.lang.model.Type;
+import awesome.lang.model.Type.ArrayType;
 
 /**
  * Generates sprockell code, visit methods return the first instruction of the
@@ -76,10 +77,17 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	public Instruction visitProgram(ProgramContext ctx) {
 		Instruction i = visit(ctx.block());
 		
+		//bunch of nops to flush stdio :( :( :( :(
+		for(int j = 0; j < 5; j++){
+			prog.addInstr(OpCode.Nop);
+		}
+		
 		prog.addInstr(OpCode.EndProg);
 		
 		return i;
 	}
+	
+	//statements
 	
 	@Override
 	public Instruction visitBlock(BlockContext ctx) {
@@ -253,16 +261,28 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	@Override
 	public Instruction visitArrayTarget(ArrayTargetContext ctx) {
 		int offset = symboltable.getOffset((AssignStatContext) ctx.getParent());
+		Type type = symboltable.getType((AssignStatContext) ctx.getParent());
+		
 		Reg reg = newReg(ctx);
-		Instruction first = prog.addInstr(OpCode.Const, offset, reg);
-		visit(ctx.expr());
+		Instruction i = visit(ctx.expr());
 		Reg exprReg = regs.get(ctx.expr());
+		
+		prog.addInstr(OpCode.Const, offset, reg);
+		
+		Type subType = ((ArrayType) type).getType();
+		if(subType.getSize() != 1) {//no need to multiply by one
+			Reg multReg = newReg();
+			prog.addInstr(OpCode.Const, subType.getSize(), multReg);
+			prog.addInstr(OpCode.Compute, Operator.Mul, exprReg, multReg, exprReg);
+			freeReg(multReg);
+		}
+		
 		prog.addInstr(OpCode.Compute, Operator.Add, reg, exprReg, reg);
 		freeReg(exprReg);
 		
 		addresses.put(ctx, MemAddr.deref(reg));
 		
-		return first;
+		return i;
 	}
 	
 	//expressions
@@ -393,12 +413,18 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	}
 	
 	private Reg newReg(ParserRuleContext ctx) {
+		Reg reg = newReg();
+		regs.put(ctx, reg);
+		
+		return reg;
+	}
+	
+	private Reg newReg() {
 		if(freeRegs.size() == 0){
 			throw new IllegalStateException("Out of registers");
 		}
 		
 		Reg reg = freeRegs.remove(0);
-		regs.put(ctx, reg);
 		
 		return reg;
 	}

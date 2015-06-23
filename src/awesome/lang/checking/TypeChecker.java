@@ -148,7 +148,6 @@ public class TypeChecker extends GrammarBaseListener {
 				this.variables.assign(ctx);
 			}
 		}
-		
 	}
 
 	@Override
