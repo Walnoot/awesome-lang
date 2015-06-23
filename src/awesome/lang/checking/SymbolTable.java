@@ -101,12 +101,14 @@ public class SymbolTable{
 	}
 	
 	private boolean assign(ParserRuleContext ctx, String id) {
-		for (int i = declarations.size()-1; i >= 0; i--) {
-			if (declarations.get(i).containsKey(id)) {
-				this.contextmap.put(ctx, declarations.get(i));
+		Scope current = this.getCurrentScope();
+		do {
+			if (current.containsKey(id)) {
+				this.contextmap.put(ctx, current);
 				return true;
 			}
-		}
+			current = current.parent;
+		} while(current != null);
 		
 		return false;
 	}
@@ -163,12 +165,7 @@ public class SymbolTable{
 	}
 
 	private Type getType(ParserRuleContext ctx, String id) {
-		
-		if (this.contains(ctx) == false)
-			return null;
-		
 		return this.contextmap.get(ctx).getType(id);
-		
 	}
 	public Type getType(DeclStatContext ctx) {
 		return this.getType(ctx, ctx.ID().getText());
