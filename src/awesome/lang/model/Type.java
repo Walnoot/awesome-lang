@@ -1,5 +1,7 @@
 package awesome.lang.model;
 
+import java.util.Arrays;
+
 public class Type {
 	public static final Type INT = new Type(1, "int");
 	public static final Type BOOL = new Type(1, "bool");
@@ -47,6 +49,12 @@ public class Type {
 		@Override
 		public boolean isArray() {
 			return true;
+		}
+	}
+	
+	public static class FunctionType extends Type {
+		private FunctionType(Type returnType, Type...arguments) {
+			super(1, String.format("(%s -> %s)", Arrays.toString(arguments), returnType));
 		}
 	}
 }

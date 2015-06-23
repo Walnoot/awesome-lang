@@ -31,7 +31,6 @@ import awesome.lang.GrammarParser.NumExprContext;
 import awesome.lang.GrammarParser.ParExprContext;
 import awesome.lang.GrammarParser.PrefixExprContext;
 import awesome.lang.GrammarParser.ProgramContext;
-import awesome.lang.GrammarParser.StatContext;
 import awesome.lang.GrammarParser.TrueExprContext;
 import awesome.lang.GrammarParser.WhileStatContext;
 import awesome.lang.model.Type;
@@ -73,7 +72,6 @@ public class TypeChecker extends GrammarBaseListener {
 	
 	@Override 
 	public void enterProgram(ProgramContext ctx) {
-		this.blockNewScope.put(ctx.block(), true);
 	}
 	
 	@Override

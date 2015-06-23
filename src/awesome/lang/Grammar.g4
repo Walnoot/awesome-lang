@@ -2,7 +2,9 @@ grammar Grammar;
 
 import GrammarVocab;
 
-program: block;
+program: imprt* (stat | function)*;
+
+imprt: IMPORT STRING SEMI;
 
 block: LCB stat* RCB;
 
@@ -15,10 +17,10 @@ stat: varSubStat SEMI										#varStat
 	| DO stat UNTIL LB expr RB SEMI							#doStat
 	| block													#blockStat
 	;
-	
-varSubStat: type ID #declStat
-	   | target ASSIGN expr #assignStat
-	   | type ID ASSIGN expr #declAssignStat
+
+varSubStat: type ID				#declStat
+	   | target ASSIGN expr		#assignStat
+	   | type ID ASSIGN expr	#declAssignStat
 	   ;
 
 //TODO: rename this to variable, fix everything that breaks, methods in generator that return the address of a variable
@@ -26,6 +28,8 @@ varSubStat: type ID #declStat
 target: ID				#idTarget
 	  | ID LSB expr RSB	#arrayTarget
 	  ;
+
+function: type ID LB (type ID) * RB COLON stat;
 
 type: INT						#intType
 	| BOOL						#boolType

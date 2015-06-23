@@ -27,6 +27,7 @@ import awesome.lang.GrammarParser.ParExprContext;
 import awesome.lang.GrammarParser.PrefixExprContext;
 import awesome.lang.GrammarParser.PrintStatContext;
 import awesome.lang.GrammarParser.ProgramContext;
+import awesome.lang.GrammarParser.StatContext;
 import awesome.lang.GrammarParser.TrueExprContext;
 import awesome.lang.GrammarParser.WhileStatContext;
 import awesome.lang.checking.SymbolTable;
@@ -61,7 +62,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	public Program genProgram(ParseTree tree) {
 		prog = new Program(1);
-		freeRegs = new ArrayList<Reg>(Arrays.asList(Reg.RegA, Reg.RegB, Reg.RegC, Reg.RegD, Reg.RegE));
+		freeRegs = new ArrayList<Reg>(Arrays.asList(Reg.RegA, Reg.RegB, Reg.RegC, Reg.RegD));
 		regs = new ParseTreeProperty<Reg>();
 		addresses = new ParseTreeProperty<MemAddr>();
 		
@@ -72,7 +73,9 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitProgram(ProgramContext ctx) {
-		Instruction i = visit(ctx.block());
+		for(StatContext stat : ctx.stat()){
+			visit(stat);
+		}
 		
 		//bunch of nops to flush stdio :( :( :( :(
 		for(int j = 0; j < 5; j++){
@@ -81,7 +84,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		prog.addInstr(OpCode.EndProg);
 		
-		return i;
+		return null;
 	}
 	
 	//statements

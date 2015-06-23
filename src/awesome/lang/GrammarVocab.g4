@@ -18,6 +18,7 @@ DO: 'do';
 UNTIL: 'until';
 PRINT: 'print';//temp, move to func later
 ASM: 'asm';
+IMPORT: 'import';
 SEMI: ';';
 ASSIGN: '=';
 
@@ -44,7 +45,7 @@ NOT: 'not';
 ID: LETTER (LETTER | DIGIT)*;
 NUM: DIGIT+;
 
-STRING: '"' (~'"' | '""')* '"';
+STRING: '"' (~'"' | '\\\"')* '"';
 
 WS: [\t\r\n ]+ -> skip;
 LINECOMMENT: '//' (~[\r\n])* -> skip;
