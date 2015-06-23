@@ -12,7 +12,7 @@ stat: varSubStat SEMI										#varStat
 	| IF LB expr RB stat  (ELSE stat)?						#ifStat
 	| WHILE LB expr RB stat									#whileStat
 	| FOR LB varSubStat SEMI expr SEMI varSubStat RB stat	#forStat
-	| DO stat UNTIL LB expr RB SEMI							#doStat
+	| DO stat WHILE LB expr RB SEMI							#doStat
 	| block													#blockStat
 	;
 	

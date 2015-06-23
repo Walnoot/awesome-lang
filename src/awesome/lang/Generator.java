@@ -11,6 +11,7 @@ import awesome.lang.GrammarParser.AddSubExprContext;
 import awesome.lang.GrammarParser.ArrayExprContext;
 import awesome.lang.GrammarParser.ArrayTargetContext;
 import awesome.lang.GrammarParser.AssignStatContext;
+import awesome.lang.GrammarParser.BlockContext;
 import awesome.lang.GrammarParser.BoolExprContext;
 import awesome.lang.GrammarParser.CompExprContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
@@ -28,6 +29,7 @@ import awesome.lang.GrammarParser.ParExprContext;
 import awesome.lang.GrammarParser.PrefixExprContext;
 import awesome.lang.GrammarParser.PrintStatContext;
 import awesome.lang.GrammarParser.ProgramContext;
+import awesome.lang.GrammarParser.StatContext;
 import awesome.lang.GrammarParser.TrueExprContext;
 import awesome.lang.GrammarParser.VarStatContext;
 import awesome.lang.GrammarParser.WhileStatContext;
@@ -77,6 +79,22 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		prog.addInstr(OpCode.EndProg);
 		
 		return i;
+	}
+	
+	@Override
+	public Instruction visitBlock(BlockContext ctx) {
+		Instruction first = null;
+		
+		for(StatContext stat : ctx.stat()){
+			Instruction i = visit(stat);
+			if(first == null) first = i;
+		}
+		
+		if(first != null){
+			return first;
+		} else {
+			return prog.addInstr(OpCode.Nop);
+		}
 	}
 	
 	@Override
@@ -177,7 +195,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		// jump back?
 		Reg reg = regs.get(ctx.expr());
-		prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);
+		prog.addInstr(OpCode.Compute, Operator.NEq, Reg.Zero, reg, reg);
 		prog.addInstr(OpCode.Branch, reg, Target.abs(start));
 		this.freeReg(reg);
 		
