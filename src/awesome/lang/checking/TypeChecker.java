@@ -63,8 +63,8 @@ public class TypeChecker extends GrammarBaseListener {
 
 	@Override
 	public void enterBlock(BlockContext ctx) {
-		
-		if (this.blockNewScope.get(ctx) == true)
+		//handles null as well
+		if (Boolean.TRUE.equals(this.blockNewScope.get(ctx)))
 			return;
 		
 		this.variables.openScope(ctx);
@@ -79,9 +79,10 @@ public class TypeChecker extends GrammarBaseListener {
 	@Override
 	public void exitBlock(BlockContext ctx) {
 
-		if (this.blockNewScope.get(ctx) == true)
+		//handles null as well
+		if (Boolean.TRUE.equals(this.blockNewScope.get(ctx)))
 			return;
-		
+				
 		this.variables.closeScope();
 		
 	}

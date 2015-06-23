@@ -29,6 +29,7 @@ import awesome.lang.GrammarParser.PrefixExprContext;
 import awesome.lang.GrammarParser.PrintStatContext;
 import awesome.lang.GrammarParser.ProgramContext;
 import awesome.lang.GrammarParser.TrueExprContext;
+import awesome.lang.GrammarParser.VarStatContext;
 import awesome.lang.GrammarParser.WhileStatContext;
 import awesome.lang.checking.SymbolTable;
 import awesome.lang.model.Instruction;
@@ -76,6 +77,11 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		prog.addInstr(OpCode.EndProg);
 		
 		return i;
+	}
+	
+	@Override
+	public Instruction visitVarStat(VarStatContext ctx) {
+		return visit(ctx.varSubStat());
 	}
 	
 	@Override
@@ -176,8 +182,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		this.freeReg(reg);
 		
 		return i;
-		
-		
 	}
 	 
 	@Override
