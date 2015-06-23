@@ -56,12 +56,22 @@ public class CompilerTest {
 		testProgram("{ int i=0;while(i<5){i=i+1;} print(i); }", "5");
 		testProgram("{ int i=0;int j=0;while(i<3){i=i+1;j=j+2;} print(j); }", "6");
 	}
-	
+
 	@Test
 	public void testArrays() throws IOException, InterruptedException, CompilationException {
 		testProgram("{ [int:5] x; x[0] = 5; print(x[0]);}", "5");
 		testProgram("{ int x=1;[int:2] y; int z=4; y[0]=2; y[1]=9; print(x); print(z);}", "14");
 		testProgram("{ int i=0;[int:4] x; while(i < 4) {x[i] = i; i = i + 1;} print(x[3]);}", "3");
+	}
+
+	@Test
+	public void testFor() throws IOException, InterruptedException, CompilationException {
+		testProgram("{ for (int i = 0; i < 10; i = i + 1) { print(i); } }", "0123456789");
+	}
+	
+	@Test
+	public void testDo() throws IOException, InterruptedException, CompilationException {
+		testProgram("{ int i = 0; do { print(i); i = i + 1; } while(i < 10); }", "0123456789");
 	}
 	
 	private void testProgram(String prog, String expected) throws IOException, InterruptedException, CompilationException {
