@@ -41,6 +41,7 @@ import awesome.lang.GrammarParser.StatContext;
 import awesome.lang.GrammarParser.TargetContext;
 import awesome.lang.GrammarParser.TrueExprContext;
 import awesome.lang.GrammarParser.WhileStatContext;
+import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.model.Type;
 import awesome.lang.model.Type.ArrayType;
 import awesome.lang.model.Type.FunctionType;
@@ -85,13 +86,19 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		//  stats
 		for(ParseTree child : ctx.children) {
 			if (child instanceof FunctionContext) {
+				// open scope (add local variables)
 				this.variables.openScope(((FunctionContext) child), true);
 				for(ArgumentContext arg : ((FunctionContext) child).argument()) {
 					// arg is already visitited in visitFunction
 					this.variables.add(arg, this.types.get(arg));
 				}
+				// add scope to function
+				Function func = this.functions.getFunction((FunctionContext) child);
+				func.setScope(this.variables.getCurrentScope());
+				// execute stat/subscopes and finalize
 				visit(((FunctionContext) child).stat());
 				this.variables.closeScope();
+				
 			} else if(child instanceof StatContext) {
 				visit(child);
 			}
@@ -141,6 +148,8 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		} else {
 			this.functions.addFunction(name, fType);
 		}
+		
+		this.functions.addContextToFunction(ctx, fType);
 		
 		return null;
 	}
