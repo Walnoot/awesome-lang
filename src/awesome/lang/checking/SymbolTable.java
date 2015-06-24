@@ -13,6 +13,7 @@ import awesome.lang.GrammarParser.DeclAssignStatContext;
 import awesome.lang.GrammarParser.DeclStatContext;
 import awesome.lang.GrammarParser.IdExprContext;
 import awesome.lang.GrammarParser.IdTargetContext;
+import awesome.lang.model.Scope;
 import awesome.lang.model.Type;
 
 public class SymbolTable{

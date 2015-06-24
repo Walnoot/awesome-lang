@@ -1,11 +1,9 @@
-package awesome.lang.checking;
+package awesome.lang.model;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.antlr.v4.runtime.ParserRuleContext;
-
-import awesome.lang.model.Type;
 
 public class Scope {
 
