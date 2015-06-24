@@ -48,8 +48,7 @@ expr: prefixOp expr			#prefixExpr
 	| expr compOp expr		#compExpr
 	| expr boolOp expr		#boolExpr
 	| LB expr RB			#parExpr
-	| ID					#idExpr
-	| ID LSB expr RSB		#arrayExpr
+	| target				#targetExpr
 	| NUM					#numExpr
 	| TRUE					#trueExpr
 	| FALSE					#falseExpr

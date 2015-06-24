@@ -30,6 +30,6 @@ public class Target {
 	
 	@Override
 	public String toString() {
-		return String.format("(%s %s)", type, arg);
+		return String.format("%s %s", type, arg);
 	}
 }

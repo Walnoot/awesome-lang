@@ -3,6 +3,7 @@ package awesome.lang;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -238,22 +239,49 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		return instruction;
 	}
 	
+	@Override
+	public Instruction visitReturnStat(ReturnStatContext ctx) {
+		Instruction instruction = visit(ctx.expr());
+		Reg exprReg = regs.get(ctx.expr());
+		
+		Reg temp = newReg();
+		
+		//set return value
+		prog.addInstr(OpCode.Const, -2, temp);
+		prog.addInstr(OpCode.Compute, Operator.Add, ARP, temp, temp);
+		prog.addInstr(OpCode.Store, exprReg, MemAddr.deref(temp));
+		
+		//get return address
+		prog.addInstr(OpCode.Const, -1, temp);
+		prog.addInstr(OpCode.Compute, Operator.Add, ARP, temp, temp);
+		prog.addInstr(OpCode.Load, MemAddr.deref(temp), temp);
+		prog.addInstr(OpCode.Jump, Target.ind(temp));
+		
+		freeReg(exprReg);
+		freeReg(temp);
+		
+		return instruction;
+	}
+	
 	//targets
 	
 	@Override
 	public Instruction visitIdTarget(IdTargetContext ctx) {
+		//find the assignmentcontext to know the offset of this var
 		ParserRuleContext current = ctx;
 		do {
 			current = current.getParent();
 		} while(!(current instanceof AssignStatContext));
 		
-		int offset = symboltable.getOffset((AssignStatContext) current);
-		
-//		MemAddr addr = MemAddr.direct(offset);
-//		addresses.put(ctx, addr);
+		int offset = symboltable.getOffset((AssignStatContext) current) + 1;//plus 1 to account for caller's arp
 		
 		Reg reg = newReg(ctx);
-		return prog.addInstr(OpCode.Const, offset, reg);
+		Instruction first = prog.addInstr(OpCode.Const, offset, reg);
+		first.setComment("var " + ctx.ID().getText());
+		prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
+		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
+		
+		return first;
 	}
 	
 	@Override
@@ -309,23 +337,29 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		Instruction first = null;
 		
+		List<ExprContext> args = ctx.expr();
+		
+		//reserve space for local variables
+		int localSize = func.getScope().getOffset() - args.size();
+		for(int i = 0; i < localSize; i++) {
+			Instruction instr = prog.addInstr(OpCode.Push, Reg.Zero);
+			if(first == null) first = instr;
+		}
+		
 		//parameters
-		for(ExprContext arg : ctx.expr()) {
-			Instruction i = visit(arg);
-			if(first == null) first = i;
+		for(int i = args.size() - 1; i >= 0; i--) {
+			ExprContext arg = args.get(i);
+			visit(arg);
 			
 			Reg reg = regs.get(arg);
-			prog.addInstr(OpCode.Push, reg);
+			Instruction instr = prog.addInstr(OpCode.Push, reg);
+			if(first == null) first = instr;
 			freeReg(reg);
 		}
 		
-		//reserve space for local variables
-		for(int i = 0; i < func.getScope().getOffset(); i++) {
-			prog.addInstr(OpCode.Push, Reg.Zero);
-		}
-		
 		//caller's ARP
-		prog.addInstr(OpCode.Push, ARP);
+		Instruction instr = prog.addInstr(OpCode.Push, ARP);
+		if(first == null) first = instr;
 		
 		//write value of stack-pointer to new ARP
 		//uses an add for lack reg-to-reg instruction
@@ -460,25 +494,35 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	}
 	
 	@Override
-	public Instruction visitIdExpr(IdExprContext ctx) {
-		int offset = this.symboltable.getOffset(ctx);
-		return prog.addInstr(OpCode.Load, MemAddr.direct(offset), newReg(ctx));
+	public Instruction visitTargetExpr(TargetExprContext ctx) {
+		Instruction first = visit(ctx.target());
+		Reg reg = regs.get(ctx);
+		regs.put(ctx, reg);
+		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
+		
+		return first;
 	}
 	
-	@Override
-	public Instruction visitArrayExpr(ArrayExprContext ctx) {
-		Instruction i = visit(ctx.expr());
-		
-		Reg reg = newReg(ctx);
-		prog.addInstr(OpCode.Const, symboltable.getOffset(ctx), reg);
-		
-		Reg exprReg = regs.get(ctx.expr());
-		prog.addInstr(OpCode.Compute, Operator.Add, reg, exprReg, reg);
-		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
-		freeReg(exprReg);
-		
-		return i;
-	}
+//	@Override
+//	public Instruction visitIdExpr(IdExprContext ctx) {
+//		int offset = this.symboltable.getOffset(ctx);
+//		return prog.addInstr(OpCode.Load, MemAddr.direct(offset), newReg(ctx));
+//	}
+//	
+//	@Override
+//	public Instruction visitArrayExpr(ArrayExprContext ctx) {
+//		Instruction i = visit(ctx.expr());
+//		
+//		Reg reg = newReg(ctx);
+//		prog.addInstr(OpCode.Const, symboltable.getOffset(ctx), reg);
+//		
+//		Reg exprReg = regs.get(ctx.expr());
+//		prog.addInstr(OpCode.Compute, Operator.Add, reg, exprReg, reg);
+//		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
+//		freeReg(exprReg);
+//		
+//		return i;
+//	}
 	
 	@Override
 	public Instruction visitNumExpr(NumExprContext ctx) {
