@@ -2,36 +2,15 @@ package awesome.lang;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
-import awesome.lang.GrammarParser.AddSubExprContext;
-import awesome.lang.GrammarParser.ArrayExprContext;
-import awesome.lang.GrammarParser.ArrayTargetContext;
-import awesome.lang.GrammarParser.AssignStatContext;
-import awesome.lang.GrammarParser.BlockContext;
-import awesome.lang.GrammarParser.BoolExprContext;
-import awesome.lang.GrammarParser.CompExprContext;
-import awesome.lang.GrammarParser.DeclAssignStatContext;
-import awesome.lang.GrammarParser.DoStatContext;
-import awesome.lang.GrammarParser.ExprContext;
-import awesome.lang.GrammarParser.FalseExprContext;
-import awesome.lang.GrammarParser.ForStatContext;
-import awesome.lang.GrammarParser.IdExprContext;
-import awesome.lang.GrammarParser.IdTargetContext;
-import awesome.lang.GrammarParser.IfStatContext;
-import awesome.lang.GrammarParser.MultDivExprContext;
-import awesome.lang.GrammarParser.NumExprContext;
-import awesome.lang.GrammarParser.ParExprContext;
-import awesome.lang.GrammarParser.PrefixExprContext;
-import awesome.lang.GrammarParser.PrintStatContext;
-import awesome.lang.GrammarParser.ProgramContext;
-import awesome.lang.GrammarParser.StatContext;
-import awesome.lang.GrammarParser.TrueExprContext;
-import awesome.lang.GrammarParser.VarStatContext;
-import awesome.lang.GrammarParser.WhileStatContext;
+import awesome.lang.GrammarParser.*;
+import awesome.lang.checking.FunctionTable;
+import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.checking.SymbolTable;
 import awesome.lang.model.*;
 import awesome.lang.model.Type.ArrayType;
@@ -43,27 +22,31 @@ import awesome.lang.model.Type.ArrayType;
 public class Generator extends GrammarBaseVisitor<Instruction> {
 	private static final int TRUE = 1, FALSE = 0;
 	
+	private static final Reg ARP = Reg.RegE;
+	private static final Reg[] REGISTERS = {Reg.RegA, Reg.RegB, Reg.RegC, Reg.RegD};
+	
 	private ParseTreeProperty<Reg> regs;
-//	private ParseTreeProperty<MemAddr> addresses;//for assignment targets
 	private ArrayList<Reg> freeRegs;
+	private HashMap<Function, Label> functionLabels;
 	private Program prog;
 
 	private SymbolTable symboltable;
+	private FunctionTable funcTable;
 	
-	public Generator(SymbolTable symboltable) {
+	public Generator(SymbolTable symboltable, FunctionTable funcTable) {
 		this.symboltable = symboltable;
+		this.funcTable = funcTable;
 	}
 	
 	public Program genProgram(ParseTree tree) {
 		prog = new Program(1);
-		freeRegs = new ArrayList<Reg>(Arrays.asList(Reg.RegA, Reg.RegB, Reg.RegC, Reg.RegD));
-		int oldSize = freeRegs.size();
+		freeRegs = new ArrayList<Reg>(Arrays.asList(REGISTERS));
 		regs = new ParseTreeProperty<Reg>();
-//		addresses = new ParseTreeProperty<MemAddr>();
+		functionLabels = new HashMap<Function, Label>();
 		
 		tree.accept(this);
 		
-		if(freeRegs.size() != oldSize){
+		if(freeRegs.size() != REGISTERS.length){
 			//some function did not free a register it used, but no errors were encountered.
 			System.err.println("Non-fatal register leak encountered.");
 		}
@@ -73,6 +56,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitProgram(ProgramContext ctx) {
+		for(FunctionContext func : ctx.function()){
+			visit(func);
+		}
+		
 		for(StatContext stat : ctx.stat()){
 			visit(stat);
 		}
@@ -243,6 +230,14 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		return i;
 	}
 	
+	@Override
+	public Instruction visitFuncStat(FuncStatContext ctx) {
+		Instruction instruction = visit(ctx.functionCall());
+		freeReg(ctx.functionCall());
+		
+		return instruction;
+	}
+	
 	//targets
 	
 	@Override
@@ -291,6 +286,88 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 //		addresses.put(ctx, MemAddr.deref(reg));
 		
 		return i;
+	}
+	
+	//functions
+	
+	@Override
+	public Instruction visitFunction(FunctionContext ctx) {
+		Function func = funcTable.getFunction(ctx);
+		Label label = new Label("func " + func.getName());
+		
+		functionLabels.put(func, label);
+		
+		Instruction first = visit(ctx.stat());
+		first.setLabel(label);
+		
+		return first;
+	}
+	
+	@Override()
+	public Instruction visitFunctionCall(FunctionCallContext ctx) {
+		Function func = funcTable.getFunction(ctx);
+		
+		Instruction first = null;
+		
+		//parameters
+		for(ExprContext arg : ctx.expr()) {
+			Instruction i = visit(arg);
+			if(first == null) first = i;
+			
+			Reg reg = regs.get(arg);
+			prog.addInstr(OpCode.Push, reg);
+			freeReg(reg);
+		}
+		
+		//reserve space for local variables
+		for(int i = 0; i < func.getScope().getOffset(); i++) {
+			prog.addInstr(OpCode.Push, Reg.Zero);
+		}
+		
+		//caller's ARP
+		prog.addInstr(OpCode.Push, ARP);
+		
+		//write value of stack-pointer to new ARP
+		//uses an add for lack reg-to-reg instruction
+		prog.addInstr(OpCode.Compute, Operator.Add, Reg.Zero, Reg.SP, ARP);
+		
+		//return address
+		Label returnLabel = new Label("function-return");
+		Reg temp = newReg();
+		prog.addInstr(OpCode.Const, returnLabel, temp);
+		prog.addInstr(OpCode.Push, temp);
+		freeReg(temp);
+		
+		//return value
+		prog.addInstr(OpCode.Push, Reg.Zero);
+		
+		//register save area
+		for(Reg reg : REGISTERS) {
+			prog.addInstr(OpCode.Push, reg);
+		}
+		
+		Label targetLabel = functionLabels.get(func);
+		prog.addInstr(OpCode.Jump, Target.abs(targetLabel));
+		
+		//get registers back
+		for(int i = 0; i < REGISTERS.length; i++) {
+			int index = REGISTERS.length - i - 1;
+			
+			if(i == 0) {
+				prog.addInstr(returnLabel, OpCode.Pop, REGISTERS[index]);
+			} else {
+				prog.addInstr(OpCode.Pop, REGISTERS[index]);
+			}
+		}
+		
+		Reg returnReg = newReg(ctx);
+		prog.addInstr(OpCode.Const, -2, returnReg);
+		prog.addInstr(OpCode.Compute, Operator.Add, ARP, returnReg, returnReg);
+		prog.addInstr(OpCode.Load, MemAddr.deref(returnReg), returnReg);
+		
+		prog.addInstr(OpCode.Load, MemAddr.deref(ARP), ARP);
+		
+		return first;
 	}
 	
 	//expressions
@@ -418,6 +495,14 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	@Override
 	public Instruction visitFalseExpr(FalseExprContext ctx) {
 		return prog.addInstr(OpCode.Const, FALSE, newReg(ctx));
+	}
+	
+	@Override
+	public Instruction visitFuncExpr(FuncExprContext ctx) {
+		Instruction instruction = visit(ctx.functionCall());
+		regs.put(ctx, regs.get(ctx.functionCall()));
+		
+		return instruction;
 	}
 	
 	private Reg newReg(ParserRuleContext ctx) {

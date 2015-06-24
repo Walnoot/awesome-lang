@@ -18,6 +18,7 @@ FOR: 'for';
 DO: 'do';
 PRINT: 'print';//temp, move to func later
 IMPORT: 'import';
+RETURN: 'return';
 SEMI: ';';
 ASSIGN: '=';
 

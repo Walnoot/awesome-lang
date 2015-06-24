@@ -26,7 +26,7 @@ public class Compiler {
 			throw new CompilationException("Error(s) during type checking", checker.getErrors());
 		}
 		
-		Generator generator = new Generator(checker.getSymbolTable());
+		Generator generator = new Generator(checker.getSymbolTable(), checker.getFunctionTable());
 		return generator.genProgram(tree);
 	}
 	

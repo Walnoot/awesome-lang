@@ -51,9 +51,11 @@ public class Instruction {
 		builder.append(opCode);
 		
 		for (int i = 0; i < operands.length; i++) {
-			builder.append(' ');
+			builder.append(" (");
 			
 			builder.append(operands[i].toString());
+
+			builder.append(")");
 		}
 		
 		if (label != null) {
