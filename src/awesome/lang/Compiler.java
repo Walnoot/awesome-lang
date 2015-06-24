@@ -2,13 +2,9 @@ package awesome.lang;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import awesome.lang.checking.TypeChecker;
 import awesome.lang.model.Program;
@@ -20,11 +16,7 @@ public class Compiler {
 	public Program compile(String program) throws CompilationException {
 		ANTLRInputStream ips = new ANTLRInputStream(program);
 		
-		// tokenize+parse
-		GrammarLexer lexer = new GrammarLexer(ips);
-		TokenStream tokens = new CommonTokenStream(lexer);
-		GrammarParser parser = new GrammarParser(tokens);
-		ParseTree tree = parser.program();
+		ParseTree tree = Util.parseProgram(ips);
 		
 		// walk through
 		TypeChecker checker = new TypeChecker();

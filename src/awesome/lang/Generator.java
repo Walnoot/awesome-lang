@@ -57,10 +57,16 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	public Program genProgram(ParseTree tree) {
 		prog = new Program(1);
 		freeRegs = new ArrayList<Reg>(Arrays.asList(Reg.RegA, Reg.RegB, Reg.RegC, Reg.RegD));
+		int oldSize = freeRegs.size();
 		regs = new ParseTreeProperty<Reg>();
 //		addresses = new ParseTreeProperty<MemAddr>();
 		
 		tree.accept(this);
+		
+		if(freeRegs.size() != oldSize){
+			//some function did not free a register it used, but no errors were encountered.
+			System.err.println("Non-fatal register leak encountered.");
+		}
 		
 		return prog;
 	}

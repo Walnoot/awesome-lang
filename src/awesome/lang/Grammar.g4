@@ -9,7 +9,6 @@ imprt: IMPORT STRING SEMI;
 block: LCB stat* RCB;
 
 stat: varSubStat SEMI										#varStat
-	| ASM STRING SEMI										#asmStat
 	| PRINT LB expr RB SEMI									#printStat //temp, move to func later
 	| IF LB expr RB stat  (ELSE stat)?						#ifStat
 	| WHILE LB expr RB stat									#whileStat // break?

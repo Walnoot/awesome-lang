@@ -17,7 +17,6 @@ WHILE: 'while';
 FOR: 'for';
 DO: 'do';
 PRINT: 'print';//temp, move to func later
-ASM: 'asm';
 IMPORT: 'import';
 SEMI: ';';
 ASSIGN: '=';
@@ -42,10 +41,10 @@ AND: 'and';
 OR: 'or';
 NOT: 'not';
 
+STRING: '"' (~'"' | '\\"')* '"';
+
 ID: LETTER (LETTER | DIGIT)*;
 NUM: DIGIT+;
-
-STRING: '"' (~'"' | '\\\"')* '"';
 
 WS: [\t\r\n ]+ -> skip;
 LINECOMMENT: '//' (~[\r\n])* -> skip;
