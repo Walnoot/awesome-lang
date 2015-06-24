@@ -19,7 +19,7 @@ public class Scope {
 		this.parent = parent;
 		this.identifier = ctx;
 		if (resetOffset == false)
-			this.offset = parent.getOffset();
+			this.offset = parent.getAtomicOffset();
 		
 	}
 
@@ -69,8 +69,12 @@ public class Scope {
 
 	}
 	
-	public AtomicInteger getOffset() {
+	public AtomicInteger getAtomicOffset() {
 		return this.offset;
+	}
+	
+	public int getOffset() {
+		return this.offset.get();
 	}
 
 }
