@@ -1,0 +1,32 @@
+//this program is imported with every program
+
+int print(int num): {
+	[int:12] chars;
+	int i = 0;
+	bool neg = i < 0;
+	if(neg) num = -num;
+	
+	while(num != 0){
+		int newnum = num / 10;
+		int digit = num - (newnum * 10);
+		chars[i] = digit;
+		i = i + 1;
+		num = newnum;
+	}
+	
+	if(neg){
+		chars[i] = '-';
+		i = i + 1;
+	}
+	
+	for(int j = i-1; j >= 0; j--){
+		//print(chars[i] + '0');
+	}
+	
+	return 0;
+}
+
+int println(int num): {
+	print(num);
+	//print('\n');
+}

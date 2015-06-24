@@ -17,7 +17,6 @@ WHILE: 'while';
 FOR: 'for';
 DO: 'do';
 PRINT: 'print';//temp, move to func later
-ASM: 'asm';
 IMPORT: 'import';
 SEMI: ';';
 ASSIGN: '=';

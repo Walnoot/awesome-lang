@@ -1,6 +1,12 @@
 package awesome.lang;
 
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.TokenStream;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
+
+import awesome.lang.GrammarParser.ProgramContext;
 
 public class Util {
 	public static String extractString(TerminalNode string) {
@@ -46,5 +52,12 @@ public class Util {
 		}
 		
 		return builder.toString();
+	}
+	
+	public static ProgramContext parseProgram(CharStream stream){
+		GrammarLexer lexer = new GrammarLexer(stream);
+		TokenStream tokens = new CommonTokenStream(lexer);
+		GrammarParser parser = new GrammarParser(tokens);
+		return parser.program();
 	}
 }
