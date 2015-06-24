@@ -37,6 +37,7 @@ import awesome.lang.GrammarParser.NumExprContext;
 import awesome.lang.GrammarParser.ParExprContext;
 import awesome.lang.GrammarParser.PrefixExprContext;
 import awesome.lang.GrammarParser.ProgramContext;
+import awesome.lang.GrammarParser.ReturnStatContext;
 import awesome.lang.GrammarParser.StatContext;
 import awesome.lang.GrammarParser.TargetContext;
 import awesome.lang.GrammarParser.TrueExprContext;
@@ -52,6 +53,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	private ArrayList<String> errors 	  = new ArrayList<String>();
 	private SymbolTable variables		  = new SymbolTable();
 	private FunctionTable functions		  = new FunctionTable();
+	private Type returnType				  = null;
 
 	private void addError(String string, ParserRuleContext ctx) {
 		
@@ -95,14 +97,36 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 				// add scope to function
 				Function func = this.functions.getFunction((FunctionContext) child);
 				func.setScope(this.variables.getCurrentScope());
-				// execute stat/subscopes and finalize
+				// set return type, for return statements
+				this.returnType = func.getFunctionType().getReturnType();
+				
+				// execute stat/subscopes
 				visit(((FunctionContext) child).stat());
+				
+				// reset return type and finalize
+				this.returnType = null;
 				this.variables.closeScope();
 				
 			} else if(child instanceof StatContext) {
 				visit(child);
 			}
 			
+		}
+		
+		return null;
+	}
+	
+	@Override
+	public Void visitReturnStat(ReturnStatContext ctx) {
+		
+		if (this.returnType == null) {
+			this.addError("Returning outside a function in expression: {expr}", ctx);
+			return null;
+		}
+		
+		visit(ctx.expr());
+		if (this.returnType.equals(this.types.get(ctx.expr())) == false) {
+				this.addError("Type of return statement is different from function definition in expression: {expr}", ctx);
 		}
 		
 		return null;

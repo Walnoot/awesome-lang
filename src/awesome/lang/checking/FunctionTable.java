@@ -12,6 +12,7 @@ import org.antlr.v4.runtime.tree.ParseTreeProperty;
 import awesome.lang.GrammarParser.FunctionCallContext;
 import awesome.lang.GrammarParser.FunctionContext;
 import awesome.lang.checking.FunctionTable.Function;
+import awesome.lang.model.Scope;
 import awesome.lang.model.Type;
 import awesome.lang.model.Type.FunctionType;
 
