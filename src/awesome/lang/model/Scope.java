@@ -2,6 +2,7 @@ package awesome.lang.model;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 
@@ -12,7 +13,7 @@ public class Scope {
 	private final ArrayList<Scope> children = new ArrayList<Scope>();
 	private final HashMap<String, Type> declarations = new HashMap<String, Type>();
 	private final HashMap<String, Integer> offsets = new HashMap<String, Integer>();
-	private int offset = 0;
+	private AtomicInteger offset = new AtomicInteger(0);
 
 	public Scope(ParserRuleContext ctx, Scope parent, boolean resetOffset) {
 		this.parent = parent;
@@ -31,8 +32,8 @@ public class Scope {
 			return false;
 
 		this.declarations.put(id, type);
-		this.offsets.put(id, this.offset);
-		this.offset += type.getSize();
+		this.offsets.put(id, this.offset.get());
+		this.offset.addAndGet(type.getSize());
 		return true;
 	}
 
@@ -68,7 +69,7 @@ public class Scope {
 
 	}
 	
-	public int getOffset() {
+	public AtomicInteger getOffset() {
 		return this.offset;
 	}
 
