@@ -24,6 +24,8 @@ import awesome.lang.GrammarParser.DoStatContext;
 import awesome.lang.GrammarParser.ExprContext;
 import awesome.lang.GrammarParser.FalseExprContext;
 import awesome.lang.GrammarParser.ForStatContext;
+import awesome.lang.GrammarParser.FuncExprContext;
+import awesome.lang.GrammarParser.FunctionCallContext;
 import awesome.lang.GrammarParser.FunctionContext;
 import awesome.lang.GrammarParser.IdExprContext;
 import awesome.lang.GrammarParser.IdTargetContext;
@@ -61,9 +63,12 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	public ArrayList<String> getErrors() {
 		return new ArrayList<String> (this.errors);
 	}
-	
+
 	public SymbolTable getSymbolTable() {
 		return variables;
+	}
+	public FunctionTable getFunctionTable() {
+		return functions;
 	}
 
 	@Override 
@@ -131,7 +136,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		
 		FunctionType fType = Type.function(retType, argTypes); 
 		String name  	   = ctx.ID().getText(); 
-		if (this.functions.contains(name, fType)) {
+		if (this.functions.containsWithArgs(name, fType)) {
 			this.addError("Double function definition with the same arguments in expression: {expr}", ctx);
 		} else {
 			this.functions.addFunction(name, fType);
@@ -140,9 +145,27 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 
-	//@Override
-	//public Void visitFunctionCall(FunctionCallContext ctx) {	
-	//}	
+	@Override
+	public Void visitFunctionCall(FunctionCallContext ctx) {
+		
+		// get argument types
+		Type[] args = new Type[ctx.expr().size()];
+		for(int i = 0; i < ctx.expr().size(); i++) {
+			visit(ctx.expr(i));
+			args[i] = this.types.get(ctx.expr(i));
+		}
+		String name = ctx.ID().getText();
+		
+		FunctionType ftype = this.functions.getFunctionTypeByArgs(name, args);
+		if (ftype == null) {
+			this.addError("Function call to unknown function in expression: {expr}", ctx);
+		} else {
+			this.types.put(ctx, ftype.getReturnType());
+			this.functions.addContextToFunctionType(ctx, ftype);
+		}
+		
+		return null;
+	}
 	
 	@Override 
 	public Void visitArgument(ArgumentContext ctx) {
@@ -363,6 +386,14 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 		
 	}
+
+	@Override
+	public Void visitFuncExpr(FuncExprContext ctx) {
+		visit(ctx.functionCall());
+		this.types.put(ctx, this.types.get(ctx.functionCall()));
+		return null;
+	}
+	
 
 	@Override
 	public Void visitParExpr(ParExprContext ctx) {
