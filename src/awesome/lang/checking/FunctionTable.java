@@ -14,27 +14,37 @@ import awesome.lang.model.Type.FunctionType;
 
 public class FunctionTable {
 	
-	private HashMap<String, ArrayList<Type.FunctionType>> types = new HashMap<String, ArrayList<Type.FunctionType>>();
-	private ParseTreeProperty<FunctionType> contextTypes	    = new ParseTreeProperty<FunctionType>();
+	private HashMap<String, ArrayList<Function>> types = new HashMap<String, ArrayList<Function>>();
+	private ParseTreeProperty<Function> contextTypes	    = new ParseTreeProperty<Function>();
 	
 	public boolean addFunction(String name, Type.FunctionType type) {
 		
 		if (this.types.containsKey(name) == false)
-			this.types.put(name, new ArrayList<FunctionType>());
+			this.types.put(name, new ArrayList<Function>());
 		
 		if (this.containsWithArgs(name, type))
 			return false;
 		
-		this.types.get(name).add(type);
+		this.types.get(name).add(new Function(name, type));
 		return true;
 	}
-	
+
 	public List<FunctionType> getTypes(String name) {
 		if (this.types.containsKey(name) == false)
 			return null;
 		
-		ArrayList<FunctionType> list = this.types.get(name);
-		return Collections.unmodifiableList(list);
+		ArrayList<FunctionType> list = new ArrayList<FunctionType>();
+		for (Function func : this.types.get(name))
+			list.add(func.getFunctionType());
+		
+		return list;
+	}
+
+	public List<Function> getFunctions(String name) {
+		if (this.types.containsKey(name) == false)
+			return null;
+		
+		return this.types.get(name);
 	}
 	
 	public FunctionType getFunctionTypeByArgs(String name, Type[] arguments) {
@@ -49,12 +59,25 @@ public class FunctionTable {
 		return null;
 	}
 	
-	public void addContextToFunctionType(FunctionCallContext ctx, FunctionType type) {
-		this.contextTypes.put(ctx, type);
+	public void addContextToFunction(FunctionCallContext ctx, FunctionType type) {
+		this.contextTypes.put(ctx, this.getFunction(ctx.ID().getText(), type.getArguments()));
 	}
 	
-	public FunctionType getFunctionType(FunctionCallContext ctx) {
+	public Function getFunction(FunctionCallContext ctx) {
 		return this.contextTypes.get(ctx);
+	}
+	
+	public Function getFunction(String name, Type[] arguments) {
+		List<Function> types = this.getFunctions(name);
+		
+		if(types != null) {
+			for (Function tCheck : types) {
+				if (Arrays.equals(tCheck.getFunctionType().getArguments(), arguments))
+					return tCheck;
+			}
+		}
+			
+		return null;
 	}
 	
 	public boolean contains(String name, Type.FunctionType type) {
@@ -83,6 +106,26 @@ public class FunctionTable {
 		}
 			
 		return false;
+	}
+	
+	public class Function {
+		private final String name;
+		private final FunctionType type;
+
+		private Function(String name, FunctionType type){
+			this.name = name;
+			this.type = type;
+			
+		}
+		
+		public String getName() {
+			return name;
+		}
+		
+		public FunctionType getFunctionType() {
+			return type;
+		}
+		
 	}
 	
 }

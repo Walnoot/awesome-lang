@@ -161,7 +161,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			this.addError("Function call to unknown function in expression: {expr}", ctx);
 		} else {
 			this.types.put(ctx, ftype.getReturnType());
-			this.functions.addContextToFunctionType(ctx, ftype);
+			this.functions.addContextToFunction(ctx, ftype);
 		}
 		
 		return null;
