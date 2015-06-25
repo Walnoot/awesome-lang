@@ -190,6 +190,9 @@ public class SymbolTable{
 	public Type getType(DeclAssignStatContext ctx) {
 		return this.getType(ctx, ctx.ID().getText());
 	}
+	public Type getType(IdTargetContext ctx) {
+		return this.getType(ctx, ctx.ID().getText());
+	}
 	public Type getType(AssignStatContext ctx) {
 		TargetContext target = ctx.target();
 		while(target instanceof ArrayTargetContext) {
@@ -218,6 +221,9 @@ public class SymbolTable{
 		return this.getOffset(ctx, ctx.ID().getText());
 	}
 	public int getOffset(DeclAssignStatContext ctx) {
+		return this.getOffset(ctx, ctx.ID().getText());
+	}
+	public int getOffset(IdTargetContext ctx) {
 		return this.getOffset(ctx, ctx.ID().getText());
 	}
 	public int getOffset(AssignStatContext ctx) {
