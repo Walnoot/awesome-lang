@@ -42,6 +42,41 @@ public class CompilerTest {
 	}
 	
 	@Test
+	public void testSwitch() throws IOException, InterruptedException, CompilationException {
+		testProgram("int i = 5;"
+				+ "switch(i) {"
+				+ "		case 5 { print(1); next; }"
+				+ "		case 6 { print(2); }"
+				+ "		case 7 { print(3); }"
+				+ "		default{ print(4); }"
+				+ "}", "12");
+		testProgram("int i = 5;"
+				+ "int j = 5;"
+				+ "switch(i) {"
+				+ "		case 5 { print(1); j = 10; next; }"
+				+ "		case 6 { print(2); if (j == 10) next; }"
+				+ "		case 7 { print(3); }"
+				+ "		default{ print(4); }"
+				+ "}", "123");
+
+		testProgram("int i = 700;"
+				+ "switch(i) {"
+				+ "		case 5 { print(1); next; }"
+				+ "		case 6 { print(2); }"
+				+ "		case 7 { print(3); }"
+				+ "		default{ print(4); }"
+				+ "}", "4");
+
+		testProgram("int i = 7;"
+				+ "switch(i) {"
+				+ "		case 5 { print(1); next; }"
+				+ "		case 6 { print(2); }"
+				+ "		case 7 { print(3); }"
+				+ "}", "3");
+
+	}
+	
+	@Test
 	public void testIf() throws IOException, InterruptedException, CompilationException {
 		testProgram("if(true) print(4);", "4");
 		testProgram("if(false) print(4); else print(3);", "3");

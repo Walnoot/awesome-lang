@@ -28,6 +28,7 @@ import awesome.lang.GrammarParser.FunctionContext;
 import awesome.lang.GrammarParser.IdTargetContext;
 import awesome.lang.GrammarParser.IfStatContext;
 import awesome.lang.GrammarParser.MultDivExprContext;
+import awesome.lang.GrammarParser.NextStatContext;
 import awesome.lang.GrammarParser.NumExprContext;
 import awesome.lang.GrammarParser.ParExprContext;
 import awesome.lang.GrammarParser.PrefixExprContext;
@@ -35,6 +36,7 @@ import awesome.lang.GrammarParser.PrintStatContext;
 import awesome.lang.GrammarParser.ProgramContext;
 import awesome.lang.GrammarParser.ReturnStatContext;
 import awesome.lang.GrammarParser.StatContext;
+import awesome.lang.GrammarParser.SwitchStatContext;
 import awesome.lang.GrammarParser.TargetExprContext;
 import awesome.lang.GrammarParser.TrueExprContext;
 import awesome.lang.GrammarParser.VarStatContext;
@@ -64,6 +66,8 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 
 	private SymbolTable symboltable;
 	private FunctionTable funcTable;
+
+	private Label nextSwitchLabel = null;
 	
 	public Generator(SymbolTable symboltable, FunctionTable funcTable) {
 		this.symboltable = symboltable;
@@ -247,6 +251,54 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		this.freeReg(reg);
 		
 		return i;
+	}
+	
+	//TODO: Push regCheck on stack when visiting a child or document otherwise
+	@Override
+	public Instruction visitSwitchStat(SwitchStatContext ctx) {
+		Instruction res = visit(ctx.expr(0));
+		Reg regCheck = regs.get(ctx.expr(0));
+
+		Label[] checkLabels = new Label[ctx.expr().size()+(ctx.DEFAULT() != null ? 1 : 0)]; // check if expression is valid (Not equal comparison) (including default and endlabel)
+		Label[] blockLabels = new Label[ctx.block().size()];  // execute next block (next) 
+		for (int i = 0; i < checkLabels.length; i++)
+			checkLabels[i] = new Label("Switch-statement expr: " + i);
+		for (int i = 0; i < blockLabels.length-1; i++)
+			blockLabels[i] = new Label("Switch-statement block: " + i);
+		blockLabels[blockLabels.length-1] = new Label("Switch-statement end");
+		
+		for (int i = 1; i < ctx.expr().size(); i++) {
+			// fix label, execute expression, compute branching
+			visit(ctx.expr(i)).setLabel(checkLabels[i-1]);
+			Reg regCompare = regs.get(ctx.expr(i));
+			prog.addInstr(OpCode.Compute, Operator.NEq, regCheck, regCompare, regCompare);
+			prog.addInstr(OpCode.Branch, regCompare, Target.abs(checkLabels[i]));
+			// free reg, set next label and visit children
+			if (i < ctx.expr().size() - 1 || ctx.DEFAULT() != null)
+				this.nextSwitchLabel = blockLabels[i];
+			else
+				this.nextSwitchLabel = null;
+			freeReg(regCompare);
+			visit(ctx.block(i-1)).setLabel(blockLabels[i-1]);
+			// jump to end
+			prog.addInstr(OpCode.Jump, Target.abs(checkLabels[checkLabels.length-1]));
+		}
+		// clear regcheck
+		freeReg(regCheck);
+		//default?
+		if (ctx.DEFAULT() != null) {
+			prog.addInstr(OpCode.Nop).setLabel(checkLabels[checkLabels.length - 2]);
+			visit(ctx.block(ctx.block().size() - 1)).setLabel(blockLabels[blockLabels.length - 1]);
+		}
+		// label of end instruction
+		prog.addInstr(checkLabels[checkLabels.length - 1], OpCode.Nop);
+		this.nextSwitchLabel = null;
+		return res;
+	}
+	
+	@Override
+	public Instruction visitNextStat(NextStatContext ctx) {
+		return prog.addInstr(OpCode.Jump, Target.abs(this.nextSwitchLabel));
 	}
 	 
 	@Override

@@ -31,12 +31,14 @@ import awesome.lang.GrammarParser.IfStatContext;
 import awesome.lang.GrammarParser.ImprtContext;
 import awesome.lang.GrammarParser.IntTypeContext;
 import awesome.lang.GrammarParser.MultDivExprContext;
+import awesome.lang.GrammarParser.NextStatContext;
 import awesome.lang.GrammarParser.NumExprContext;
 import awesome.lang.GrammarParser.ParExprContext;
 import awesome.lang.GrammarParser.PrefixExprContext;
 import awesome.lang.GrammarParser.ProgramContext;
 import awesome.lang.GrammarParser.ReturnStatContext;
 import awesome.lang.GrammarParser.StatContext;
+import awesome.lang.GrammarParser.SwitchStatContext;
 import awesome.lang.GrammarParser.TargetExprContext;
 import awesome.lang.GrammarParser.TrueExprContext;
 import awesome.lang.GrammarParser.WhileStatContext;
@@ -52,6 +54,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	private SymbolTable variables		  = new SymbolTable();
 	private FunctionTable functions		  = new FunctionTable();
 	private Type returnType				  = null;
+	private Boolean inSwitch			  = Boolean.FALSE;
 
 	private void addError(String string, ParserRuleContext ctx) {
 		
@@ -299,6 +302,39 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			this.addError("Expression in while-statement does not return boolean: {expr}", ctx);
 		}
 		visit(ctx.stat());
+		return null;
+	}
+	
+	@Override
+	public Void visitSwitchStat(SwitchStatContext ctx) {
+		visit(ctx.expr(0));
+		Type resType = this.types.get(ctx.expr(0)); 
+		for (int i = 1; i < ctx.expr().size(); i++) {
+			visit(ctx.expr(i));
+			if (resType.equals(this.types.get(ctx.expr(i))) == false)
+				this.addError("Type of case does not match the switch-type in expression: {expr}", ctx);
+		}
+		
+		this.inSwitch = Boolean.TRUE;
+		for (int i = 0; i < ctx.block().size()-1; i++) {
+			visit(ctx.block(i));
+		}
+		this.inSwitch = null;
+		if (ctx.block().size() > 0)
+			visit(ctx.block(ctx.block().size()-1));
+		
+		this.inSwitch = Boolean.FALSE;
+		return null;
+	}
+	
+	@Override
+	public Void visitNextStat(NextStatContext ctx) {
+		if (this.inSwitch == null) {
+			this.addError("Next statement in last switch-block, there is no next? In expression: {expr}", ctx);
+		}
+		else if (Boolean.FALSE.equals(this.inSwitch)) {
+			this.addError("Next statement outside a switch-block in expression: {expr}", ctx); 
+		}
 		return null;
 	}
 
