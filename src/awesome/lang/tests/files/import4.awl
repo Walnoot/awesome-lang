@@ -1,0 +1,3 @@
+import "import3.awl";
+
+int w = 1;

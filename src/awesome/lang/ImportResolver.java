@@ -16,8 +16,8 @@ import awesome.lang.GrammarParser.ProgramContext;
 import awesome.lang.GrammarParser.StatContext;
 
 public class ImportResolver extends GrammarBaseVisitor<Void> {
-	private ArrayList<StatContext> statements;
-	private ArrayList<FunctionContext> functions;
+	private ArrayList<StatContext> statements = new ArrayList<StatContext>();
+	private ArrayList<FunctionContext> functions = new ArrayList<FunctionContext>();
 	
 	//list of files that were imported, to resolve circular dependencies
 	private ArrayList<String> imports = new ArrayList<String>();
@@ -40,27 +40,8 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 		for (ImprtContext imprt : ctx.imprt()) {
 			String file = Util.extractString(imprt.STRING());
 			
-			//see if this program was already imported
-			boolean isNew = true;
-			for (String resolved : imports) {
-				if (resolved.equals(file)) {
-					isNew = false;
-					break;
-				}
-			}
-			
-			if (isNew) {
-				//first attempt searching relative to working directory
-				boolean success = attemptImport(Paths.get(file));
-				
-				//then attempt to search relative to directory of main program
-				if (!success) {
-					success = attemptImport(mainDir.resolve(file));
-				}
-				
-				if (!success) {
-					System.err.printf("Unable to resolve import \"%s\"\n", file);
-				}
+			if (!attemptImport(mainDir.resolve(file))) {
+				System.err.printf("Unable to resolve import \"%s\"\n", file);
 			}
 		}
 		
@@ -77,6 +58,13 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 	
 	private boolean attemptImport(Path path) {
 		File file = path.toFile();
+		
+		if (imports.contains(file.getName())) {
+			return true;
+		} else {
+			imports.add(file.getName());
+		}
+		
 		try {
 			ProgramContext program = Util.parseProgram(new ANTLRInputStream(new FileReader(file)));
 			program.accept(this);
@@ -96,5 +84,12 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 	
 	public ArrayList<FunctionContext> getFunctions() {
 		return functions;
+	}
+	
+	/**
+	 * @return All the files that were included.
+	 */
+	public ArrayList<String> getImports() {
+		return imports;
 	}
 }

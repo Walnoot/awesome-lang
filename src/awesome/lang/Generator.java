@@ -9,7 +9,35 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
-import awesome.lang.GrammarParser.*;
+import awesome.lang.GrammarParser.AddSubExprContext;
+import awesome.lang.GrammarParser.ArrayTargetContext;
+import awesome.lang.GrammarParser.AssignStatContext;
+import awesome.lang.GrammarParser.BlockContext;
+import awesome.lang.GrammarParser.BoolExprContext;
+import awesome.lang.GrammarParser.CompExprContext;
+import awesome.lang.GrammarParser.DeclAssignStatContext;
+import awesome.lang.GrammarParser.DoStatContext;
+import awesome.lang.GrammarParser.ExprContext;
+import awesome.lang.GrammarParser.FalseExprContext;
+import awesome.lang.GrammarParser.ForStatContext;
+import awesome.lang.GrammarParser.FuncExprContext;
+import awesome.lang.GrammarParser.FuncStatContext;
+import awesome.lang.GrammarParser.FunctionCallContext;
+import awesome.lang.GrammarParser.FunctionContext;
+import awesome.lang.GrammarParser.IdTargetContext;
+import awesome.lang.GrammarParser.IfStatContext;
+import awesome.lang.GrammarParser.MultDivExprContext;
+import awesome.lang.GrammarParser.NumExprContext;
+import awesome.lang.GrammarParser.ParExprContext;
+import awesome.lang.GrammarParser.PrefixExprContext;
+import awesome.lang.GrammarParser.PrintStatContext;
+import awesome.lang.GrammarParser.ProgramContext;
+import awesome.lang.GrammarParser.ReturnStatContext;
+import awesome.lang.GrammarParser.StatContext;
+import awesome.lang.GrammarParser.TargetExprContext;
+import awesome.lang.GrammarParser.TrueExprContext;
+import awesome.lang.GrammarParser.VarStatContext;
+import awesome.lang.GrammarParser.WhileStatContext;
 import awesome.lang.checking.FunctionTable;
 import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.checking.SymbolTable;
@@ -18,7 +46,9 @@ import awesome.lang.model.Type.ArrayType;
 
 /**
  * Generates sprockell code, visit methods return the first instruction of the
- * block they generate
+ * block they generate.
+ * 
+ * Roughly follows the structure of the grammar.
  */
 public class Generator extends GrammarBaseVisitor<Instruction> {
 	private static final int TRUE = 1, FALSE = 0;
@@ -45,6 +75,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		regs = new ParseTreeProperty<Reg>();
 		functionLabels = new HashMap<Function, Label>();
 		
+		for(int i = 0; i < symboltable.getCurrentScope().getOffset(); i++){
+			prog.addInstr(OpCode.Push, Reg.Zero);
+		}
+		
 		tree.accept(this);
 		
 		if(freeRegs.size() != REGISTERS.length){
@@ -57,12 +91,16 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitProgram(ProgramContext ctx) {
+		Label start = new Label("program-begin");
+		prog.addInstr(OpCode.Jump, Target.abs(start));
+		
 		for(FunctionContext func : ctx.function()){
 			visit(func);
 		}
 		
 		for(StatContext stat : ctx.stat()){
-			visit(stat);
+			Instruction instr = visit(stat);
+			if(start.getInstr() == null) instr.setLabel(start);
 		}
 		
 		//bunch of nops to flush stdio :( :( :( :(
@@ -186,7 +224,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		// jump back?
 		Reg reg = regs.get(ctx.expr());
-		prog.addInstr(OpCode.Compute, Operator.NEq, Reg.Zero, reg, reg);
 		prog.addInstr(OpCode.Branch, reg, Target.abs(start));
 		this.freeReg(reg);
 		
@@ -308,7 +345,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			freeReg(multReg);
 		}
 		
-		prog.addInstr(OpCode.Compute, Operator.Add, reg, exprReg, reg);
+		prog.addInstr(OpCode.Compute, Operator.Sub, reg, exprReg, reg);
 		freeReg(exprReg);
 		
 //		addresses.put(ctx, MemAddr.deref(reg));
@@ -333,9 +370,20 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override()
 	public Instruction visitFunctionCall(FunctionCallContext ctx) {
+		//AR:
+		//local var n
+		//local var 0
+		//param n
+		//param 0
+		//caller's ARP
+		//return address
+		//return value
+		//RegA .. RegB
+		
 		Function func = funcTable.getFunction(ctx);
 		
 		Instruction first = null;
+		int stackSize = func.getScope().getOffset();//local vars + params
 		
 		List<ExprContext> args = ctx.expr();
 		
@@ -357,6 +405,8 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			freeReg(reg);
 		}
 		
+		stackSize += 3;//ARP + ret value + ret addr
+		
 		//caller's ARP
 		Instruction instr = prog.addInstr(OpCode.Push, ARP);
 		if(first == null) first = instr;
@@ -374,6 +424,8 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		//return value
 		prog.addInstr(OpCode.Push, Reg.Zero);
+		
+		stackSize += REGISTERS.length;
 		
 		//register save area
 		for(Reg reg : REGISTERS) {
@@ -394,10 +446,16 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			}
 		}
 		
-		Reg returnReg = newReg(ctx);
-		prog.addInstr(OpCode.Const, -2, returnReg);
-		prog.addInstr(OpCode.Compute, Operator.Add, ARP, returnReg, returnReg);
-		prog.addInstr(OpCode.Load, MemAddr.deref(returnReg), returnReg);
+		Reg reg = newReg(ctx);
+		
+		//temporarily use this reg to pop the stack back
+		//later use it to get the return value
+		prog.addInstr(OpCode.Const, stackSize, reg);
+		prog.addInstr(OpCode.Compute, Operator.Sub, Reg.SP, reg, Reg.SP);
+		
+		prog.addInstr(OpCode.Const, -2, reg);
+		prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
+		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
 		
 		prog.addInstr(OpCode.Load, MemAddr.deref(ARP), ARP);
 		
