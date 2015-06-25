@@ -16,6 +16,7 @@ import awesome.lang.GrammarParser.BlockContext;
 import awesome.lang.GrammarParser.BoolExprContext;
 import awesome.lang.GrammarParser.CompExprContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
+import awesome.lang.GrammarParser.DeclStatContext;
 import awesome.lang.GrammarParser.DoStatContext;
 import awesome.lang.GrammarParser.ExprContext;
 import awesome.lang.GrammarParser.FalseExprContext;
@@ -79,6 +80,9 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			prog.addInstr(OpCode.Push, Reg.Zero);
 		}
 		
+		//set initial ARP
+		prog.addInstr(OpCode.Compute, Operator.Add, Reg.Zero, Reg.SP, ARP);
+		
 		tree.accept(this);
 		
 		if(freeRegs.size() != REGISTERS.length){
@@ -100,6 +104,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		for(StatContext stat : ctx.stat()){
 			Instruction instr = visit(stat);
+			if(instr == null) System.out.println(stat.getText());
 			if(start.getInstr() == null) instr.setLabel(start);
 		}
 		
@@ -149,8 +154,22 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitDeclAssignStat(DeclAssignStatContext ctx) {
-		return assign(ctx.expr(), MemAddr.direct(symboltable.getOffset(ctx)));
+		Reg reg = newReg();
+		Instruction instr = prog.addInstr(OpCode.Const, symboltable.getOffset(ctx) + 1, reg);
+		instr.setComment("var " + ctx.ID().getText());
+		prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
+		
+		assign(ctx.expr(), MemAddr.deref(reg));
+		freeReg(reg);
+		
+		return instr;
 	}
+	
+	@Override
+	public Instruction visitDeclStat(DeclStatContext ctx) {
+		return prog.addInstr(OpCode.Nop);
+	}
+	
 	
 	private Instruction assign(ExprContext exprContext, MemAddr addr) {
 		Instruction i = visit(exprContext);
@@ -304,19 +323,15 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitIdTarget(IdTargetContext ctx) {
-		//find the assignmentcontext to know the offset of this var
-		ParserRuleContext current = ctx;
-		do {
-			current = current.getParent();
-		} while(!(current instanceof AssignStatContext));
-		
-		int offset = symboltable.getOffset((AssignStatContext) current) + 1;//plus 1 to account for caller's arp
+		int offset = symboltable.getOffset(ctx) + 1;//plus 1 to account for caller's arp
 		
 		Reg reg = newReg(ctx);
 		Instruction first = prog.addInstr(OpCode.Const, offset, reg);
 		first.setComment("var " + ctx.ID().getText());
 		prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
-		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
+		//prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
+		
+		System.out.println(regs.get(ctx));
 		
 		return first;
 	}
@@ -538,7 +553,9 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		prog.addInstr(OpCode.Compute, op, regs.get(expr1), regs.get(expr2), reg);
 		regs.put(expr, reg);
 		
-		freeReg(regs.get(expr1));
+		Reg reg2 = regs.get(expr1);
+		if(reg2 == null) System.out.println(expr1.getText());
+		freeReg(reg2);
 		
 		return i;
 	}
@@ -554,7 +571,8 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	@Override
 	public Instruction visitTargetExpr(TargetExprContext ctx) {
 		Instruction first = visit(ctx.target());
-		Reg reg = regs.get(ctx);
+		Reg reg = regs.get(ctx.target());
+		System.out.printf("put %s %s\n", ctx.getText(), reg);
 		regs.put(ctx, reg);
 		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
 		
@@ -621,6 +639,8 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		Reg reg = freeRegs.remove(0);
 		
+		System.out.println("new reg: " + reg);
+		
 		return reg;
 	}
 	
@@ -629,6 +649,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	}
 	
 	private void freeReg(Reg reg) {
+		if(reg == null) throw new NullPointerException();
+		
+		System.out.println("freeing: " + reg);
+		
 		if(freeRegs.contains(reg)){
 			throw new IllegalArgumentException("Register already freed");
 		}

@@ -19,8 +19,6 @@ public class ImportTest {
 	private void testImport(String file, String...expected) {
 		ImportResolver resolver = new ImportResolver(Paths.get("src/awesome/lang/tests/files/" + file));
 		
-		System.out.println(resolver.getImports());
-		
 		Assert.assertEquals(Arrays.asList(expected), resolver.getImports());
 	}
 }

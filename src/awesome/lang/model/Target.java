@@ -25,7 +25,7 @@ public class Target {
 	}
 	
 	public static Target ind(Reg reg) {
-		return new Target("Abs", reg);
+		return new Target("Ind", reg);
 	}
 	
 	@Override

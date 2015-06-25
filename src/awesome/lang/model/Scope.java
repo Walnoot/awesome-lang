@@ -76,5 +76,8 @@ public class Scope {
 	public int getOffset() {
 		return this.offset.get();
 	}
-
+	
+	public boolean isGlobal(){
+		return parent == null;
+	}
 }
