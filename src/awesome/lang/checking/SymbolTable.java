@@ -6,13 +6,12 @@ import java.util.HashMap;
 import org.antlr.v4.runtime.ParserRuleContext;
 
 import awesome.lang.GrammarParser.ArgumentContext;
-import awesome.lang.GrammarParser.ArrayExprContext;
 import awesome.lang.GrammarParser.ArrayTargetContext;
 import awesome.lang.GrammarParser.AssignStatContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
 import awesome.lang.GrammarParser.DeclStatContext;
-import awesome.lang.GrammarParser.IdExprContext;
 import awesome.lang.GrammarParser.IdTargetContext;
+import awesome.lang.GrammarParser.TargetContext;
 import awesome.lang.model.Scope;
 import awesome.lang.model.Type;
 
@@ -97,18 +96,26 @@ public class SymbolTable{
 	 * @return
 	 */
 	public boolean assign(AssignStatContext ctx) {
-		String id = TypeChecker.getID(ctx);
 		
-		return assign(ctx, id);
+		TargetContext target = ctx.target();
+		while(target instanceof ArrayTargetContext) {
+			target = ((ArrayTargetContext) target).target();
+		}
+		
+		return assign(ctx, ((IdTargetContext) target).ID().getText());
 	}
 
-	public boolean assign(IdExprContext ctx) {
+	public boolean assign(IdTargetContext ctx) {
 		return assign(ctx, ctx.ID().getText());
 	}
 	
-	public boolean assign(ArrayExprContext ctx){
-		return assign(ctx, ctx.ID().getText());
-	}
+//	public boolean assign(ArrayTargetContext ctx){
+//		return assign(ctx, ctx.ID().getText());
+//	}
+	
+//	public boolean assign(TargetExprContext ctx) {
+//		return assign(ctx, ctx.ID().getText());
+//	}
 	
 	private boolean assign(ParserRuleContext ctx, String id) {
 		Scope current = this.getCurrentScope();
@@ -184,10 +191,12 @@ public class SymbolTable{
 		return this.getType(ctx, ctx.ID().getText());
 	}
 	public Type getType(AssignStatContext ctx) {
-		return this.getType(ctx, TypeChecker.getID(ctx));
-	}
-	public Type getType(ArrayExprContext ctx){
-		return this.getType(ctx, ctx.ID().getText());
+		TargetContext target = ctx.target();
+		while(target instanceof ArrayTargetContext) {
+			target = ((ArrayTargetContext) target).target();
+		}
+		
+		return this.getType(ctx, ((IdTargetContext) target).ID().getText());
 	}
 
 	/**
@@ -212,13 +221,13 @@ public class SymbolTable{
 		return this.getOffset(ctx, ctx.ID().getText());
 	}
 	public int getOffset(AssignStatContext ctx) {
-		return this.getOffset(ctx, TypeChecker.getID(ctx));
-	}
-	public int getOffset(IdExprContext ctx) {
-		return this.getOffset(ctx, ctx.ID().getText());
-	}
-	public int getOffset(ArrayExprContext ctx){
-		return this.getOffset(ctx, ctx.ID().getText());
+		
+		TargetContext target = ctx.target();
+		while(target instanceof ArrayTargetContext) {
+			target = ((ArrayTargetContext) target).target();
+		}
+		
+		return this.getOffset(ctx, ((IdTargetContext) target).ID().getText());
 	}
 	
 	public int getOffset(String id){
