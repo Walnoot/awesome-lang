@@ -104,7 +104,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		for(StatContext stat : ctx.stat()){
 			Instruction instr = visit(stat);
-			if(instr == null) System.out.println(stat.getText());
 			if(start.getInstr() == null) instr.setLabel(start);
 		}
 		
@@ -155,9 +154,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	@Override
 	public Instruction visitDeclAssignStat(DeclAssignStatContext ctx) {
 		Reg reg = newReg();
-		Instruction instr = prog.addInstr(OpCode.Const, symboltable.getOffset(ctx) + 1, reg);
+		Instruction instr = genAddr(symboltable.isGlobal(ctx), symboltable.getOffset(ctx), reg);
+//		Instruction instr = prog.addInstr(OpCode.Const, symboltable.getOffset(ctx) + 1, reg);
 		instr.setComment("var " + ctx.ID().getText());
-		prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
+//		prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
 		
 		assign(ctx.expr(), MemAddr.deref(reg));
 		freeReg(reg);
@@ -319,29 +319,39 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		return instruction;
 	}
 	
+	/**
+	 * Generates code to put the address of a variable with given offset in the register
+	 */
+	private Instruction genAddr(boolean global, int offset, Reg reg){
+		if(!global){
+			Instruction instr = prog.addInstr(OpCode.Const, offset + 1, reg);
+			prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
+			return instr;
+		} else {
+			Instruction instr = prog.addInstr(OpCode.Const, offset, reg);
+			return instr;
+		}
+	}
+	
 	//targets
 	
 	@Override
 	public Instruction visitIdTarget(IdTargetContext ctx) {
-		int offset = symboltable.getOffset(ctx) + 1;//plus 1 to account for caller's arp
+//		int offset = symboltable.getOffset(ctx) + 1;//plus 1 to account for caller's arp
 		
 		Reg reg = newReg(ctx);
-		Instruction first = prog.addInstr(OpCode.Const, offset, reg);
-		first.setComment("var " + ctx.ID().getText());
-		prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
-		//prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
+//		Instruction first = prog.addInstr(OpCode.Const, offset, reg);
+//		first.setComment("var " + ctx.ID().getText());
+//		prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
+//		//prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
 		
-		System.out.println(regs.get(ctx));
-		
-		return first;
+		return genAddr(symboltable.isGlobal(ctx), symboltable.getOffset(ctx), reg);
 	}
 	
 	@Override
 	public Instruction visitArrayTarget(ArrayTargetContext ctx) {
 		AssignStatContext parent = (AssignStatContext) ctx.getParent();
 		Type type = symboltable.getType(parent);
-		
-		System.out.println(type);
 		
 		Instruction i = visit(ctx.target());
 		Reg reg = regs.get(ctx.target());
@@ -553,9 +563,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		prog.addInstr(OpCode.Compute, op, regs.get(expr1), regs.get(expr2), reg);
 		regs.put(expr, reg);
 		
-		Reg reg2 = regs.get(expr1);
-		if(reg2 == null) System.out.println(expr1.getText());
-		freeReg(reg2);
+		freeReg(regs.get(expr1));
 		
 		return i;
 	}
@@ -572,7 +580,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	public Instruction visitTargetExpr(TargetExprContext ctx) {
 		Instruction first = visit(ctx.target());
 		Reg reg = regs.get(ctx.target());
-		System.out.printf("put %s %s\n", ctx.getText(), reg);
 		regs.put(ctx, reg);
 		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
 		
@@ -639,8 +646,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		Reg reg = freeRegs.remove(0);
 		
-		System.out.println("new reg: " + reg);
-		
 		return reg;
 	}
 	
@@ -650,8 +655,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	private void freeReg(Reg reg) {
 		if(reg == null) throw new NullPointerException();
-		
-		System.out.println("freeing: " + reg);
 		
 		if(freeRegs.contains(reg)){
 			throw new IllegalArgumentException("Register already freed");

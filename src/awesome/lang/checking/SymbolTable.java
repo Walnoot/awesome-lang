@@ -248,5 +248,7 @@ public class SymbolTable{
 		
 	}
 
-	
+	public boolean isGlobal(ParserRuleContext var){
+		return contextmap.get(var).isGlobal();
+	}
 }

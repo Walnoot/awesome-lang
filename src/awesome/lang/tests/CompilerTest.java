@@ -70,9 +70,8 @@ public class CompilerTest {
 		testProgram("int i = 1; int add(int a, bool b, int c):{ i = a; return 5; }","");
 		testProgram("int i = 1; int add(int a, bool b, int c):{ i = a; int b; b=a; return b; } print(add(5,true,2));","5");
 		testProgram("int i = 7; bool add():{ i = 2; return true; } int add(int a):{ i=a; return i; } add(4); print(i);","4");
-		testProgram("int i = 1; add(); int add():{ i = 2; } int add(int a):{ i=a; } print(i);","2");
+		testProgram("int i = 1; add(); int add():{ i = 2; return 0;} int add(int a):{ i=a; return 0;} print(i);","2");
 	}
-	
 	
 	@Test
 	public void testFor() throws IOException, InterruptedException, CompilationException {

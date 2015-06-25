@@ -28,7 +28,7 @@ public class Label {
 		if (instr == null) {
 			return "unset(" + name + ")";
 		} else {
-			return Integer.toString(instr.getPosition());
+			return Integer.toString(instr.getPosition()) + "{-" + name + "-}";
 		}
 	}
 }

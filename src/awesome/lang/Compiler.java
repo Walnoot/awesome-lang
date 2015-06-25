@@ -18,6 +18,9 @@ public class Compiler {
 		
 		ParseTree tree = Util.parseProgram(ips);
 		
+		if(tree == null)
+			throw new CompilationException("Parse error", new ArrayList<String>());
+		
 		// walk through
 		TypeChecker checker = new TypeChecker();
 		tree.accept(checker);

@@ -1,8 +1,16 @@
 package awesome.lang;
 
+import java.util.BitSet;
+
+import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Parser;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.TokenStream;
+import org.antlr.v4.runtime.atn.ATNConfigSet;
+import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
@@ -54,10 +62,24 @@ public class Util {
 		return builder.toString();
 	}
 	
-	public static ProgramContext parseProgram(CharStream stream){
+	public static ProgramContext parseProgram(CharStream stream) {
 		GrammarLexer lexer = new GrammarLexer(stream);
+		ErrorListener listener = new ErrorListener();
+		lexer.addErrorListener(listener);
 		TokenStream tokens = new CommonTokenStream(lexer);
 		GrammarParser parser = new GrammarParser(tokens);
-		return parser.program();
+		parser.addErrorListener(listener);
+		ProgramContext program = parser.program();
+		return listener.error ? null : program;
+	}
+	
+	private static class ErrorListener extends BaseErrorListener {
+		private boolean error = false;
+		
+		@Override
+		public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
+				String msg, RecognitionException e) {
+			error = true;
+		}
 	}
 }
