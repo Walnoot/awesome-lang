@@ -2,6 +2,7 @@ package awesome.lang;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -412,7 +413,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		Function func = funcTable.getFunction(ctx);
 		
 		Instruction first = null;
-		int stackSize = func.getScope().getOffset();//local vars + params
+		
+		//local vars + params + ARP + ret value + ret addr
+		//register saves dont count
+		int stackSize = func.getScope().getOffset() + 3;
 		
 		List<ExprContext> args = ctx.expr();
 		
@@ -434,8 +438,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			freeReg(reg);
 		}
 		
-		stackSize += 3;//ARP + ret value + ret addr
-		
 		//caller's ARP
 		Instruction instr = prog.addInstr(OpCode.Push, ARP);
 		if(first == null) first = instr;
@@ -455,40 +457,46 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		prog.addInstr(OpCode.Push, Reg.Zero);
 		
 		//register save area
-		for(Reg reg : REGISTERS) {
-			prog.addInstr(OpCode.Push, reg);
+		//we save every register that is currently used, i.e. every reg that's not on the free list
+		ArrayList<Reg> savedRegs = new ArrayList<Reg>();
+		for (Reg reg : REGISTERS) {
+			if (!freeRegs.contains(reg)) {
+				prog.addInstr(OpCode.Push, reg);
+				savedRegs.add(reg);
+			}
 		}
 		
 		Label targetLabel = functionLabels.get(func);
 		prog.addInstr(OpCode.Jump, Target.abs(targetLabel));
 		
+		prog.addInstr(returnLabel, OpCode.Nop);
+		
 		//get registers back
-		for(int i = 0; i < REGISTERS.length; i++) {
-			int index = REGISTERS.length - i - 1;
-			
-			if(i == 0) {
-				prog.addInstr(returnLabel, OpCode.Pop, REGISTERS[index]);
-			} else {
-				prog.addInstr(OpCode.Pop, REGISTERS[index]);
-			}
+		Collections.reverse(savedRegs);
+		for(Reg reg : savedRegs) {
+			prog.addInstr(OpCode.Pop, reg);
 		}
 		
 		Reg reg = newReg(ctx);
 		
-		prog.addInstr(OpCode.Pop, reg);//return value
+//		prog.addInstr(OpCode.Pop, reg);//return value
+//		
+//		prog.addInstr(OpCode.Pop, Reg.Zero);//return address
+//		prog.addInstr(OpCode.Pop, Reg.Zero);//callers arp
+//		for(int i = 0; i < func.getScope().getOffset(); i++) {
+//			prog.addInstr(OpCode.Pop, Reg.Zero);
+//		}
 		
-		prog.addInstr(OpCode.Pop, Reg.Zero);//return address
-		prog.addInstr(OpCode.Pop, Reg.Zero);//callers arp
-		for(int i = 0; i < func.getScope().getOffset(); i++) {
-			prog.addInstr(OpCode.Pop, Reg.Zero);
-		}
-//		prog.addInstr(OpCode.Const, stackSize, reg);
-//		prog.addInstr(OpCode.Compute, Operator.Add, Reg.SP, reg, Reg.SP);
+		//push stack back
+		prog.addInstr(OpCode.Const, stackSize, reg);
+		prog.addInstr(OpCode.Compute, Operator.Add, Reg.SP, reg, Reg.SP);
 		
-//		prog.addInstr(OpCode.Const, -2, reg);
-//		prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
-//		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
+		//load return value
+		prog.addInstr(OpCode.Const, -2, reg);
+		prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
+		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
 		
+		//set old ARP back
 		prog.addInstr(OpCode.Load, MemAddr.deref(ARP), ARP);
 		
 		return first;
@@ -592,27 +600,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		return first;
 	}
-	
-//	@Override
-//	public Instruction visitIdExpr(IdExprContext ctx) {
-//		int offset = this.symboltable.getOffset(ctx);
-//		return prog.addInstr(OpCode.Load, MemAddr.direct(offset), newReg(ctx));
-//	}
-//	
-//	@Override
-//	public Instruction visitArrayExpr(ArrayExprContext ctx) {
-//		Instruction i = visit(ctx.expr());
-//		
-//		Reg reg = newReg(ctx);
-//		prog.addInstr(OpCode.Const, symboltable.getOffset(ctx), reg);
-//		
-//		Reg exprReg = regs.get(ctx.expr());
-//		prog.addInstr(OpCode.Compute, Operator.Add, reg, exprReg, reg);
-//		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
-//		freeReg(exprReg);
-//		
-//		return i;
-//	}
 	
 	@Override
 	public Instruction visitNumExpr(NumExprContext ctx) {
