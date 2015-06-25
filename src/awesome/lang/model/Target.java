@@ -17,6 +17,8 @@ public class Target {
 	}
 	
 	public static Target abs(Label label) {
+		if(label == null) throw new NullPointerException();
+		
 		return new Target("Abs", label);
 	}
 	
@@ -25,6 +27,8 @@ public class Target {
 	}
 	
 	public static Target ind(Reg reg) {
+		if(reg == null) throw new NullPointerException();
+		
 		return new Target("Ind", reg);
 	}
 	

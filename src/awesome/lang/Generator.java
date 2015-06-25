@@ -76,13 +76,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		regs = new ParseTreeProperty<Reg>();
 		functionLabels = new HashMap<Function, Label>();
 		
-		for(int i = 0; i < symboltable.getCurrentScope().getOffset(); i++){
-			prog.addInstr(OpCode.Push, Reg.Zero);
-		}
-		
-		//set initial ARP
-		prog.addInstr(OpCode.Compute, Operator.Add, Reg.Zero, Reg.SP, ARP);
-		
 		tree.accept(this);
 		
 		if(freeRegs.size() != REGISTERS.length){
@@ -96,15 +89,32 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	@Override
 	public Instruction visitProgram(ProgramContext ctx) {
 		Label start = new Label("program-begin");
+		
+		for(int i = 0; i < symboltable.getCurrentScope().getOffset(); i++){
+			prog.addInstr(OpCode.Push, Reg.Zero);
+		}
+		
+		//set initial ARP
+		prog.addInstr(OpCode.Compute, Operator.Add, Reg.Zero, Reg.SP, ARP);
+		
 		prog.addInstr(OpCode.Jump, Target.abs(start));
+		
+		//prepare function labels
+		for(FunctionContext f : ctx.function()){
+			Function func = funcTable.getFunction(f);
+			Label label = new Label("func " + func.getName());
+			
+			functionLabels.put(func, label);
+		}
 		
 		for(FunctionContext func : ctx.function()){
 			visit(func);
 		}
 		
+		prog.addInstr(start, OpCode.Nop);
+		
 		for(StatContext stat : ctx.stat()){
-			Instruction instr = visit(stat);
-			if(start.getInstr() == null) instr.setLabel(start);
+			visit(stat);
 		}
 		
 		//bunch of nops to flush stdio :( :( :( :(
@@ -298,6 +308,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	@Override
 	public Instruction visitReturnStat(ReturnStatContext ctx) {
 		Instruction instruction = visit(ctx.expr());
+		instruction.setComment("return-expr");
 		Reg exprReg = regs.get(ctx.expr());
 		
 		Reg temp = newReg();
@@ -337,15 +348,11 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitIdTarget(IdTargetContext ctx) {
-//		int offset = symboltable.getOffset(ctx) + 1;//plus 1 to account for caller's arp
-		
 		Reg reg = newReg(ctx);
-//		Instruction first = prog.addInstr(OpCode.Const, offset, reg);
-//		first.setComment("var " + ctx.ID().getText());
-//		prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
-//		//prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
 		
-		return genAddr(symboltable.isGlobal(ctx), symboltable.getOffset(ctx), reg);
+		Instruction i = genAddr(symboltable.isGlobal(ctx), symboltable.getOffset(ctx), reg);
+		i.setComment("var: " + ctx.getText());
+		return i;
 	}
 	
 	@Override
@@ -382,10 +389,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitFunction(FunctionContext ctx) {
-		Function func = funcTable.getFunction(ctx);
-		Label label = new Label("func " + func.getName());
-		
-		functionLabels.put(func, label);
+		Label label = functionLabels.get(funcTable.getFunction(ctx));
 		
 		Instruction first = visit(ctx.stat());
 		first.setLabel(label);
@@ -404,7 +408,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		//return address
 		//return value
 		//RegA .. RegB
-		
+
 		Function func = funcTable.getFunction(ctx);
 		
 		Instruction first = null;
@@ -422,10 +426,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		//parameters
 		for(int i = args.size() - 1; i >= 0; i--) {
 			ExprContext arg = args.get(i);
-			visit(arg);
+			Instruction instr = visit(arg);
 			
 			Reg reg = regs.get(arg);
-			Instruction instr = prog.addInstr(OpCode.Push, reg);
+			prog.addInstr(OpCode.Push, reg);
 			if(first == null) first = instr;
 			freeReg(reg);
 		}
@@ -450,8 +454,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		//return value
 		prog.addInstr(OpCode.Push, Reg.Zero);
 		
-		stackSize += REGISTERS.length;
-		
 		//register save area
 		for(Reg reg : REGISTERS) {
 			prog.addInstr(OpCode.Push, reg);
@@ -473,14 +475,19 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		Reg reg = newReg(ctx);
 		
-		//temporarily use this reg to pop the stack back
-		//later use it to get the return value
-		prog.addInstr(OpCode.Const, stackSize, reg);
-		prog.addInstr(OpCode.Compute, Operator.Sub, Reg.SP, reg, Reg.SP);
+		prog.addInstr(OpCode.Pop, reg);//return value
 		
-		prog.addInstr(OpCode.Const, -2, reg);
-		prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
-		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
+		prog.addInstr(OpCode.Pop, Reg.Zero);//return address
+		prog.addInstr(OpCode.Pop, Reg.Zero);//callers arp
+		for(int i = 0; i < func.getScope().getOffset(); i++) {
+			prog.addInstr(OpCode.Pop, Reg.Zero);
+		}
+//		prog.addInstr(OpCode.Const, stackSize, reg);
+//		prog.addInstr(OpCode.Compute, Operator.Add, Reg.SP, reg, Reg.SP);
+		
+//		prog.addInstr(OpCode.Const, -2, reg);
+//		prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
+//		prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
 		
 		prog.addInstr(OpCode.Load, MemAddr.deref(ARP), ARP);
 		

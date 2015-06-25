@@ -67,10 +67,13 @@ public class CompilerTest {
 
 	@Test
 	public void testFunctionsTypecheck() throws IOException, InterruptedException, CompilationException {
+		testProgram("{} ","");
 		testProgram("int i = 1; int add(int a, bool b, int c):{ i = a; return 5; }","");
 		testProgram("int i = 1; int add(int a, bool b, int c):{ i = a; int b; b=a; return b; } print(add(5,true,2));","5");
 		testProgram("int i = 7; bool add():{ i = 2; return true; } int add(int a):{ i=a; return i; } add(4); print(i);","4");
 		testProgram("int i = 1; add(); int add():{ i = 2; return 0;} int add(int a):{ i=a; return 0;} print(i);","2");
+		testProgram("int a(int n):return b(n); int b(int n):return n-1; print(a(2)); ","1");
+		testProgram("int fac(int n):{if(n == 0) return 1; else return n * fac(n-1);} print(fac(3)); ","6");
 	}
 	
 	@Test
