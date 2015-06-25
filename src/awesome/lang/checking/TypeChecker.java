@@ -10,7 +10,6 @@ import org.antlr.v4.runtime.tree.ParseTreeProperty;
 import awesome.lang.*;
 import awesome.lang.GrammarParser.AddSubExprContext;
 import awesome.lang.GrammarParser.ArgumentContext;
-import awesome.lang.GrammarParser.ArrayExprContext;
 import awesome.lang.GrammarParser.ArrayTargetContext;
 import awesome.lang.GrammarParser.ArrayTypeContext;
 import awesome.lang.GrammarParser.AssignStatContext;
@@ -27,7 +26,6 @@ import awesome.lang.GrammarParser.ForStatContext;
 import awesome.lang.GrammarParser.FuncExprContext;
 import awesome.lang.GrammarParser.FunctionCallContext;
 import awesome.lang.GrammarParser.FunctionContext;
-import awesome.lang.GrammarParser.IdExprContext;
 import awesome.lang.GrammarParser.IdTargetContext;
 import awesome.lang.GrammarParser.IfStatContext;
 import awesome.lang.GrammarParser.ImprtContext;
@@ -40,6 +38,7 @@ import awesome.lang.GrammarParser.ProgramContext;
 import awesome.lang.GrammarParser.ReturnStatContext;
 import awesome.lang.GrammarParser.StatContext;
 import awesome.lang.GrammarParser.TargetContext;
+import awesome.lang.GrammarParser.TargetExprContext;
 import awesome.lang.GrammarParser.TrueExprContext;
 import awesome.lang.GrammarParser.WhileStatContext;
 import awesome.lang.checking.FunctionTable.Function;
@@ -260,28 +259,14 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	public Void visitAssignStat(AssignStatContext ctx) {
 		visit(ctx.expr());
 		visit(ctx.target());
-		// check assign type to variable type
-		String name = getID(ctx);
 		
-		if (this.variables.contains(name) == false) {
-			this.addError("Assignment of undeclared variable "+name+" in expression: {expr}", ctx);
+		Type exptype = this.types.get(ctx.expr());
+		Type vartype = this.types.get(ctx.target());
+
+		if (!vartype.equals(exptype)) {
+			this.addError("Assignment of type "+exptype.toString()+" to variable of type "+vartype.toString()+" in expression {expr}", ctx);
 		} else {
-			Type exptype = this.types.get(ctx.expr());
-			Type vartype = this.variables.getType(name);
-			if(vartype instanceof ArrayType){
-				//assign to array position
-				vartype = ((ArrayType) vartype).getType();
-				
-				if(!exptype.equals(vartype)){
-					addError("Cannot assign " + exptype + " to " + vartype + " in {expr}", ctx);
-				}
-			}
-			
-			if (!vartype.equals(exptype)) {
-				this.addError("Assignment of type "+exptype.toString()+" to variable of type "+vartype.toString()+" in expression {expr}", ctx);
-			} else {
-				this.variables.assign(ctx);
-			}
+			this.variables.assign(ctx);
 		}
 		return null;
 	}
@@ -454,7 +439,34 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	}
 	
 	@Override
-	public Void visitIdExpr(IdExprContext ctx) {
+	public Void visitTargetExpr(TargetExprContext ctx) {
+		visit(ctx.target());
+		this.types.put(ctx, this.types.get(ctx.target()));
+		return null;
+	}
+	
+	@Override
+	public Void visitArrayTarget(ArrayTargetContext ctx) {
+		visit(ctx.target());
+		visit(ctx.expr());
+		
+		if (this.types.get(ctx.expr()) != Type.INT) {
+			this.addError("Using a non-integer index in expression: {expr}", ctx);
+		}
+		
+		Type aType = this.types.get(ctx.target());
+		if (aType instanceof ArrayType) {
+			aType = ((ArrayType) aType).getType();
+		} else {
+			this.addError("Taking index of a non-array variable in expression: {expr}", ctx);
+		}
+		
+		this.types.put(ctx, aType);
+		return null;
+	}
+	
+	@Override 
+	public Void visitIdTarget(IdTargetContext ctx) {
 		String name = ctx.ID().getText();
 		if (this.variables.contains(name) == false) {
 			this.addError("use of undeclared variable "+name+" in expression: {expr}", ctx);
@@ -464,39 +476,6 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			this.types.put(ctx, this.variables.getType(name));
 		}
 		return null;
-		
-	}
-	
-	@Override
-	public Void visitArrayExpr(ArrayExprContext ctx) {
-		visit(ctx.expr());
-		
-		Type type = variables.getType(ctx.ID().getText());
-		if(!type.isArray()) {
-			addError("Not an array in expression: {expr}", ctx);
-		}
-		
-		if(types.get(ctx.expr()) != Type.INT) {
-			addError("No instance of int: ", ctx.expr());
-		}
-		
-		types.put(ctx, ((ArrayType) type).getType());
-		variables.assign(ctx);
-		return null;
-	}
-	
-	public static String getID(AssignStatContext ctx){
-		return getID(ctx.target());
-	}
-	
-	private static String getID(TargetContext ctx){
-		if(ctx instanceof IdTargetContext) {
-			return ((IdTargetContext) ctx).ID().getText();
-		} else if (ctx instanceof ArrayTargetContext) {
-			return getID(((ArrayTargetContext) ctx).target());
-		} else {
-			throw new UnsupportedOperationException("Unknown target class " + ctx.getClass());
-		}
 	}
 	
 }
