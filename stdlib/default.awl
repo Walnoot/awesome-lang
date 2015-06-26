@@ -16,19 +16,19 @@ printnum(int num): {
 	while(num != 0){
 		int newnum = num / 10;
 		int digit = num - (newnum * 10);
-		//chars[i] = digit;
+		chars[i] = digit;
 		i = i + 1;
 		num = newnum;
 	}
 	
 	if(neg){
-		//chars[i] = 45;
+		chars[i] = 45;
 		i = i + 1;
 	}
 	
 	for(int j = i-1; j >= 0; j = j-1){
 		//print(chars[i] + 48);
-		//write (chars[i] + 48) 16777216;
+		write (chars[i] + 48) 16777216;
 	}
 }
 

@@ -126,7 +126,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		Instruction targetI = visit(ctx.target());
 		
 		Reg reg = regs.get(ctx.target());
-		assign(ctx.expr(), MemAddr.deref(reg), symboltable.isGlobal(ctx));
+		assign(ctx.expr(), MemAddr.deref(reg), isGlobal(ctx.target()));
 		freeReg(reg);
 		
 		return targetI;
@@ -361,6 +361,18 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		freeReg(temp);
 	}
 	
+	@Override
+	public Instruction visitWriteStat(WriteStatContext ctx) {
+		Instruction i = visit(ctx.expr(0));
+		visit(ctx.expr(1));
+		
+		prog.addInstr(OpCode.Write, regs.get(ctx.expr(0)), MemAddr.deref(regs.get(ctx.expr(1))));
+		freeReg(ctx.expr(0));
+		freeReg(ctx.expr(1));
+		
+		return i;
+	}
+	
 	/**
 	 * Generates code to put the address of a variable with given offset in the register
 	 */
@@ -404,22 +416,20 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			freeReg(multReg);
 		}
 		
-		prog.addInstr(OpCode.Compute, Operator.Sub, reg, exprReg, reg);
+		prog.addInstr(OpCode.Compute, isGlobal(ctx) ? Operator.Add : Operator.Sub, reg, exprReg, reg);
 		freeReg(exprReg);
 		
 		return i;
 	}
 	
-	@Override
-	public Instruction visitWriteStat(WriteStatContext ctx) {
-		Instruction i = visit(ctx.expr(0));
-		visit(ctx.expr(1));
+	private boolean isGlobal(TargetContext ctx) {
+		if(ctx instanceof IdTargetContext){
+			return symboltable.isGlobal(ctx);
+		} else if(ctx instanceof ArrayTargetContext) {
+			return isGlobal(((ArrayTargetContext) ctx).target());
+		}
 		
-		prog.addInstr(OpCode.Write, regs.get(ctx.expr(0)), MemAddr.deref(regs.get(ctx.expr(1))));
-		freeReg(ctx.expr(0));
-		freeReg(ctx.expr(1));
-		
-		return i;
+		return false;
 	}
 	
 	//functions
@@ -638,7 +648,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		Reg reg = regs.get(ctx.target());
 		regs.put(ctx, reg);
 		
-		if(symboltable.isGlobal(ctx.target())) {
+		if(isGlobal(ctx.target())) {
 			prog.addInstr(OpCode.Read, MemAddr.deref(reg));
 			prog.addInstr(OpCode.Receive, reg);
 		} else {

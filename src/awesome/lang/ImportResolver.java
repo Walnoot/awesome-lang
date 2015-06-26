@@ -45,7 +45,7 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 	}
 	
 	private void importDefault() {
-		//attemptImport(Paths.get("stdlib", "default.awl"));
+		attemptImport(Paths.get("stdlib", "default.awl"));
 	}
 	
 	@Override

@@ -115,7 +115,13 @@ public class CompilerTest {
 	public void testStdlib() throws IOException, InterruptedException, CompilationException {
 		testProgram("print(add(4, 3));", "7");
 		testProgram("printllama();", "32");
-//		testProgram("printnum(2);", "32");
+		testProgram("printnum(2);", "2");
+	}
+	
+	@Test
+	public void testGlobals() throws IOException, InterruptedException, CompilationException {
+		//array x is stored in global mem
+		testProgram("[int:2] x; func(): x[1]=7; func(); print(x[1]);", "7");
 	}
 	
 	@Test
