@@ -76,12 +76,6 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	}
 	
 	@Override
-	public Void visitPrintStat(PrintStatContext ctx) {
-		visit(ctx.expr());
-		return null;
-	}
-	
-	@Override
 	public Void visitReturnStat(ReturnStatContext ctx) {
 		
 		if (this.returnType == null) {

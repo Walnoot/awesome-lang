@@ -20,7 +20,6 @@ SWITCH: 'switch';
 CASE: 'case';
 DEFAULT: 'default';
 NEXT: 'next';
-PRINT: 'print';//temp, move to func later
 IMPORT: 'import';
 RETURN: 'return';
 WRITE: 'write';

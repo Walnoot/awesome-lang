@@ -113,9 +113,8 @@ public class CompilerTest {
 	
 	@Test
 	public void testStdlib() throws IOException, InterruptedException, CompilationException {
-		testProgram("print(add(4, 3));", "7");
-		testProgram("printllama();", "32");
-		testProgram("printnum(2);", "2");
+		testProgram("print(120034);", "120034");
+		testProgram("print(-1);", "-1");
 	}
 	
 	@Test

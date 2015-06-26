@@ -305,25 +305,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	}
 	
 	@Override
-	public Instruction visitPrintStat(PrintStatContext ctx) {
-		//temp, will be a function later
-		//only handles numbers between 0 and 9
-		Instruction i = visit(ctx.expr());
-		
-		Reg value = regs.get(ctx.expr());
-		Reg valChar = newReg(ctx);
-		
-		prog.addInstr(OpCode.Const, (int) '0', valChar);
-		prog.addInstr(OpCode.Compute, Operator.Add, value, valChar, valChar);
-		prog.addInstr(OpCode.Write, valChar, "stdio");
-
-		freeReg(value);
-		freeReg(valChar);
-		
-		return i;
-	}
-	
-	@Override
 	public Instruction visitFuncStat(FuncStatContext ctx) {
 		Instruction instruction = visit(ctx.functionCall());
 		freeReg(ctx.functionCall());
@@ -415,8 +396,9 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			prog.addInstr(OpCode.Compute, Operator.Mul, exprReg, multReg, exprReg);
 			freeReg(multReg);
 		}
-		
-		prog.addInstr(OpCode.Compute, isGlobal(ctx) ? Operator.Add : Operator.Sub, reg, exprReg, reg);
+
+//		prog.addInstr(OpCode.Compute, isGlobal(ctx) ? Operator.Add : Operator.Sub, reg, exprReg, reg);
+		prog.addInstr(OpCode.Compute, Operator.Add, reg, exprReg, reg);
 		freeReg(exprReg);
 		
 		return i;
