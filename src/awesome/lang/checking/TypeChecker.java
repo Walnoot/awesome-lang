@@ -76,6 +76,14 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	}
 	
 	@Override
+	public Void visitPrintStat(PrintStatContext ctx) {
+		System.out.println("printhier");
+		System.out.println(ctx.getText());
+		visit(ctx.expr());
+		return null;
+	}
+	
+	@Override
 	public Void visitReturnStat(ReturnStatContext ctx) {
 		
 		if (this.returnType == null) {
@@ -462,6 +470,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	
 	@Override
 	public Void visitTargetExpr(TargetExprContext ctx) {
+		System.out.println(ctx.getText());
 		visit(ctx.target());
 		this.types.put(ctx, this.types.get(ctx.target()));
 		return null;
@@ -469,6 +478,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	
 	@Override
 	public Void visitArrayTarget(ArrayTargetContext ctx) {
+		System.out.println(ctx.getText());
 		visit(ctx.target());
 		visit(ctx.expr());
 		
@@ -482,7 +492,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		} else {
 			this.addError("Taking index of a non-array variable in expression: {expr}", ctx);
 		}
-		
+		if (this.variables.add(ctx, aType) == false) {
+			this.variables.assign(ctx);
+		}
 		this.types.put(ctx, aType);
 		return null;
 	}

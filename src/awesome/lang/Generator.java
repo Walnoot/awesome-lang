@@ -388,8 +388,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitArrayTarget(ArrayTargetContext ctx) {
-		AssignStatContext parent = (AssignStatContext) ctx.getParent();
-		Type type = symboltable.getType(parent);
+		Type type = symboltable.getType(ctx);
 		
 		Instruction i = visit(ctx.target());
 		Reg reg = regs.get(ctx.target());
@@ -397,10 +396,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		visit(ctx.expr());
 		Reg exprReg = regs.get(ctx.expr());
 		
-		Type subType = ((ArrayType) type).getType();
-		if(subType.getSize() != 1) {//no need to multiply by one
+//		Type subType = ((ArrayType) type).getType();
+		if(type.getSize() != 1) {//no need to multiply by one
 			Reg multReg = newReg();
-			prog.addInstr(OpCode.Const, subType.getSize(), multReg);
+			prog.addInstr(OpCode.Const, type.getSize(), multReg);
 			prog.addInstr(OpCode.Compute, Operator.Mul, exprReg, multReg, exprReg);
 			freeReg(multReg);
 		}
