@@ -2,8 +2,12 @@
 
 int add(int x, int y): return x+y;
 
+printllama(): {
+	print(3);
+	print(2);
+}
 
-int printnum(int num): {
+printnum(int num): {
 	[int:12] chars;
 	int i = 0;
 	bool neg = i < 0;
@@ -24,14 +28,12 @@ int printnum(int num): {
 	
 	for(int j = i-1; j >= 0; j = j-1){
 		//print(chars[i] + 48);
+		//write (chars[i] + 48) 16777216;
 	}
-	
-	return 0;
 }
 
-int println(int num): {
+println(int num): {
 	print(num);
 	//print('\n');
-	return 0;
 }
 

@@ -5,6 +5,7 @@ import java.util.Arrays;
 public class Type {
 	public static final Type INT = new Type(1, "int");
 	public static final Type BOOL = new Type(1, "bool");
+	public static final Type VOID = new Type(1, "void");
 	
 	private int size;
 	private String name;

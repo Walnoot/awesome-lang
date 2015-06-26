@@ -17,7 +17,6 @@ stat: varSubStat SEMI										#varStat
 	| SWITCH LB expr RB LCB (CASE expr block)* (DEFAULT block)? RCB	#switchStat
 	| functionCall SEMI										#funcStat
 	| WRITE expr expr SEMI									#writeStat
-	| READ expr expr SEMI									#writeStat
 	| RETURN expr SEMI										#returnStat
 	| NEXT SEMI												#nextStat 
 	| block													#blockStat 
@@ -36,7 +35,7 @@ target: ID					#idTarget
 
 argument: type ID;
 
-function: type ID LB (argument (COMMA argument)*)? RB COLON stat;
+function: type? ID LB (argument (COMMA argument)*)? RB COLON stat;
 
 functionCall: ID LB (expr (COMMA expr)*)? RB;
 
@@ -53,6 +52,7 @@ expr: prefixOp expr			#prefixExpr
 	| expr boolOp expr		#boolExpr
 	| LB expr RB			#parExpr
 	| target				#targetExpr
+	| READ expr				#readExpr
 	| NUM					#numExpr
 	| TRUE					#trueExpr
 	| FALSE					#falseExpr

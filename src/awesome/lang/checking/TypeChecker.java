@@ -8,6 +8,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
 import awesome.lang.*;
+import awesome.lang.GrammarParser.TypeContext;
 import awesome.lang.GrammarParser.*;
 import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.model.Type;
@@ -109,17 +110,19 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	
 	@Override 
 	public Void visitFunction(FunctionContext ctx) {
-		if(!hasReturn(ctx.stat())){
-			addError("Function " + ctx.ID().getText() + " does not return properly", ctx);
-		}
-		
 		// only function definition, contents are evaluated in visitProgram.
-		visit(ctx.type());
+		TypeContext typeExpr = ctx.type();
+		if(typeExpr != null) visit(typeExpr);
 		for (ParserRuleContext child : ctx.argument()) {
 			visit(child);
 		}
 		
-		Type retType = this.types.get(ctx.type());
+		Type retType = typeExpr == null ? Type.VOID : this.types.get(typeExpr);
+		
+		if(retType != Type.VOID && !hasReturn(ctx.stat())){
+			addError("Function " + ctx.ID().getText() + " does not return properly", ctx);
+		}
+		
 		Type[] argTypes = new Type[ctx.argument().size()];
 		for (int i = 0; i < ctx.argument().size(); i++) {
 			argTypes[i] = this.types.get(ctx.argument(i));
@@ -308,7 +311,32 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			visit(ctx.stat(1));
 		return null;
 	}
-
+	
+	@Override
+	public Void visitWriteStat(WriteStatContext ctx) {
+		visit(ctx.expr(0));
+		visit(ctx.expr(1));
+		
+		if(types.get(ctx.expr(0)) != Type.INT || types.get(ctx.expr(1)) != Type.INT) {
+			addError("Expressions in write statement must be of type int: {expr}", ctx);
+		}
+		
+		return null;
+	}
+	
+	@Override
+	public Void visitReadExpr(ReadExprContext ctx) {
+		visit(ctx.expr());
+		
+		if(types.get(ctx.expr()) != Type.INT) {
+			addError("Expressions in read expression must be of type int: {expr}", ctx);
+		}
+		
+		types.put(ctx, Type.INT);
+		
+		return null;
+	}
+	
 	@Override
 	public Void visitPrefixExpr(PrefixExprContext ctx) {
 		visit(ctx.expr());
