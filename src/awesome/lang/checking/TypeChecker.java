@@ -77,8 +77,6 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	
 	@Override
 	public Void visitPrintStat(PrintStatContext ctx) {
-		System.out.println("printhier");
-		System.out.println(ctx.getText());
 		visit(ctx.expr());
 		return null;
 	}
@@ -390,7 +388,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		visit(child1);
 		visit(child2);
 		// valid types?
-		if (this.types.get(child1) != this.types.get(child2)) {
+		if (this.types.get(child1).equals(this.types.get(child2)) == false) {
 			this.addError("Comparing "+this.types.get(child1)+" with "+this.types.get(child2) + " in {expr}", ctx);
 		} else if (this.types.get(child1) == Type.INT) {
 			this.types.put(ctx, Type.BOOL);
@@ -470,7 +468,6 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	
 	@Override
 	public Void visitTargetExpr(TargetExprContext ctx) {
-		System.out.println(ctx.getText());
 		visit(ctx.target());
 		this.types.put(ctx, this.types.get(ctx.target()));
 		return null;
@@ -478,7 +475,6 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	
 	@Override
 	public Void visitArrayTarget(ArrayTargetContext ctx) {
-		System.out.println(ctx.getText());
 		visit(ctx.target());
 		visit(ctx.expr());
 		
