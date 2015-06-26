@@ -76,7 +76,15 @@ public class SymbolTable{
 		}
 		
 		return success;
+	}
+	// only add type, do not compute offset!
+	public boolean add(ArrayTargetContext ctx, Type type) {
+		boolean success = this.getCurrentScope().add(ctx.getText(), type, false);
+		if (success) {
+			this.contextmap.put(ctx,  this.getCurrentScope());
+		}
 		
+		return success;
 	}
 
 	public boolean add(ArgumentContext ctx, Type type) {
@@ -109,9 +117,9 @@ public class SymbolTable{
 		return assign(ctx, ctx.ID().getText());
 	}
 	
-//	public boolean assign(ArrayTargetContext ctx){
-//		return assign(ctx, ctx.ID().getText());
-//	}
+	public boolean assign(ArrayTargetContext ctx){
+		return assign(ctx, ctx.getText());
+	}
 	
 //	public boolean assign(TargetExprContext ctx) {
 //		return assign(ctx, ctx.ID().getText());
@@ -192,6 +200,9 @@ public class SymbolTable{
 	}
 	public Type getType(IdTargetContext ctx) {
 		return this.getType(ctx, ctx.ID().getText());
+	}
+	public Type getType(ArrayTargetContext ctx) {
+		return this.getType(ctx, ctx.getText());
 	}
 	public Type getType(AssignStatContext ctx) {
 		TargetContext target = ctx.target();

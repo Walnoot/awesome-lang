@@ -28,12 +28,18 @@ public class Scope {
 	}
 
 	public boolean add(String id, Type type) {
+		return this.add(id, type, true);
+	}
+	
+	public boolean add(String id, Type type, boolean addOffset) {
 		if (this.declarations.containsKey(id))
 			return false;
 
 		this.declarations.put(id, type);
-		this.offsets.put(id, this.offset.get());
-		this.offset.addAndGet(type.getSize());
+		if (addOffset) {
+			this.offsets.put(id, this.offset.get());
+			this.offset.addAndGet(type.getSize());
+		}
 		return true;
 	}
 
