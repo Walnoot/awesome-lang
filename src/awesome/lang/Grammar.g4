@@ -15,6 +15,8 @@ stat: varSubStat SEMI										#varStat
 	| FOR LB varSubStat SEMI expr SEMI varSubStat RB stat	#forStat   // break?
 	| DO stat WHILE LB expr RB SEMI							#doStat    // break?
 	| functionCall SEMI										#funcStat
+	| WRITE expr expr SEMI									#writeStat
+	| READ expr expr SEMI									#writeStat
 	| RETURN expr SEMI										#returnStat
 	| block													#blockStat 
 	;

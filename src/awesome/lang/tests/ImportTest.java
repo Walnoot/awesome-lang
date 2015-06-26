@@ -12,8 +12,8 @@ public class ImportTest {
 	@Test
 	public void test() {
 		//tests circular dependencies
-		testImport("import1.awl", "import1.awl", "import2.awl", "import3.awl");
-		testImport("import4.awl", "import4.awl", "import3.awl");
+		testImport("import1.awl", "default.awl", "import1.awl", "import2.awl", "import3.awl");
+		testImport("import4.awl", "default.awl", "import4.awl", "import3.awl");
 	}
 
 	private void testImport(String file, String...expected) {

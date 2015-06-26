@@ -1,45 +1,14 @@
 package awesome.lang.checking;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
 import awesome.lang.*;
-import awesome.lang.GrammarParser.AddSubExprContext;
-import awesome.lang.GrammarParser.ArgumentContext;
-import awesome.lang.GrammarParser.ArrayTargetContext;
-import awesome.lang.GrammarParser.ArrayTypeContext;
-import awesome.lang.GrammarParser.AssignStatContext;
-import awesome.lang.GrammarParser.BlockContext;
-import awesome.lang.GrammarParser.BoolExprContext;
-import awesome.lang.GrammarParser.BoolTypeContext;
-import awesome.lang.GrammarParser.CompExprContext;
-import awesome.lang.GrammarParser.DeclAssignStatContext;
-import awesome.lang.GrammarParser.DeclStatContext;
-import awesome.lang.GrammarParser.DoStatContext;
-import awesome.lang.GrammarParser.ExprContext;
-import awesome.lang.GrammarParser.FalseExprContext;
-import awesome.lang.GrammarParser.ForStatContext;
-import awesome.lang.GrammarParser.FuncExprContext;
-import awesome.lang.GrammarParser.FunctionCallContext;
-import awesome.lang.GrammarParser.FunctionContext;
-import awesome.lang.GrammarParser.IdTargetContext;
-import awesome.lang.GrammarParser.IfStatContext;
-import awesome.lang.GrammarParser.ImprtContext;
-import awesome.lang.GrammarParser.IntTypeContext;
-import awesome.lang.GrammarParser.MultDivExprContext;
-import awesome.lang.GrammarParser.NumExprContext;
-import awesome.lang.GrammarParser.ParExprContext;
-import awesome.lang.GrammarParser.PrefixExprContext;
-import awesome.lang.GrammarParser.ProgramContext;
-import awesome.lang.GrammarParser.ReturnStatContext;
-import awesome.lang.GrammarParser.StatContext;
-import awesome.lang.GrammarParser.TargetExprContext;
-import awesome.lang.GrammarParser.TrueExprContext;
-import awesome.lang.GrammarParser.WhileStatContext;
+import awesome.lang.GrammarParser.*;
 import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.model.Type;
 import awesome.lang.model.Type.ArrayType;
@@ -71,47 +40,37 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	public FunctionTable getFunctionTable() {
 		return functions;
 	}
-
-	@Override 
-	public Void visitProgram(ProgramContext ctx) {
-		
-		// fix imports
-		for(ImprtContext child : ctx.imprt()) {
-			visit(child);
-		}
+	
+	public void checkProgram(ArrayList<FunctionContext> functions, ArrayList<StatContext> statements) {
 		// function definitions
-		for(FunctionContext child : ctx.function()) {
+		for(FunctionContext child : functions) {
 			visit(child);
 		}
-		//  stats
-		for(ParseTree child : ctx.children) {
-			if (child instanceof FunctionContext) {
-				// open scope (add local variables)
-				this.variables.openScope(((FunctionContext) child), true);
-				for(ArgumentContext arg : ((FunctionContext) child).argument()) {
-					// arg is already visitited in visitFunction
-					this.variables.add(arg, this.types.get(arg));
-				}
-				// add scope to function
-				Function func = this.functions.getFunction((FunctionContext) child);
-				func.setScope(this.variables.getCurrentScope());
-				// set return type, for return statements
-				this.returnType = func.getFunctionType().getReturnType();
-				
-				// execute stat/subscopes
-				visit(((FunctionContext) child).stat());
-				
-				// reset return type and finalize
-				this.returnType = null;
-				this.variables.closeScope();
-				
-			} else if(child instanceof StatContext) {
-				visit(child);
-			}
-			
+		
+		for(StatContext stat : statements){
+			visit(stat);
 		}
 		
-		return null;
+		for(FunctionContext child : functions) {
+			// open scope (add local variables)
+			this.variables.openScope(((FunctionContext) child), true);
+			for(ArgumentContext arg : ((FunctionContext) child).argument()) {
+				// arg is already visitited in visitFunction
+				this.variables.add(arg, this.types.get(arg));
+			}
+			// add scope to function
+			Function func = this.functions.getFunction((FunctionContext) child);
+			func.setScope(this.variables.getCurrentScope());
+			// set return type, for return statements
+			this.returnType = func.getFunctionType().getReturnType();
+			
+			// execute stat/subscopes
+			visit(((FunctionContext) child).stat());
+			
+			// reset return type and finalize
+			this.returnType = null;
+			this.variables.closeScope();
+		}
 	}
 	
 	@Override
@@ -145,11 +104,13 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		this.variables.closeScope();
 		
 		return null;
-		
 	}
 	
 	@Override 
 	public Void visitFunction(FunctionContext ctx) {
+		if(!hasReturn(ctx.stat())){
+			addError("Function " + ctx.ID().getText() + " does not return properly", ctx);
+		}
 		
 		// only function definition, contents are evaluated in visitProgram.
 		visit(ctx.type());
@@ -477,5 +438,29 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Used to check if a function always reaches a return statement.
+	 */
+	private boolean hasReturn(StatContext ctx) {
+		if (ctx instanceof ReturnStatContext) {
+			return true;
+		} else if (ctx instanceof BlockStatContext) {
+			List<StatContext> stats = ((BlockStatContext) ctx).block().stat();
+			if (stats.size() > 0) {
+				return hasReturn(stats.get(stats.size() - 1));
+			} else {
+				return false;
+			}
+		} else if (ctx instanceof IfStatContext) {
+			IfStatContext ifStat = (IfStatContext) ctx;
+			if(ifStat.stat().size() > 1) {
+				return hasReturn(ifStat.stat(0)) && hasReturn(ifStat.stat(1));
+			} else {
+				return hasReturn(ifStat.stat(0));
+			}
+		} else {
+			return false;
+		}
+	}
 }
 

@@ -33,7 +33,6 @@ import awesome.lang.GrammarParser.NumExprContext;
 import awesome.lang.GrammarParser.ParExprContext;
 import awesome.lang.GrammarParser.PrefixExprContext;
 import awesome.lang.GrammarParser.PrintStatContext;
-import awesome.lang.GrammarParser.ProgramContext;
 import awesome.lang.GrammarParser.ReturnStatContext;
 import awesome.lang.GrammarParser.StatContext;
 import awesome.lang.GrammarParser.TargetExprContext;
@@ -71,13 +70,13 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		this.funcTable = funcTable;
 	}
 	
-	public Program genProgram(ParseTree tree) {
+	public Program genProgram(ArrayList<FunctionContext> functions, ArrayList<StatContext> statements) {
 		prog = new Program(1);
 		freeRegs = new ArrayList<Reg>(Arrays.asList(REGISTERS));
 		regs = new ParseTreeProperty<Reg>();
 		functionLabels = new HashMap<Function, Label>();
 		
-		tree.accept(this);
+		visitProgram(functions, statements);
 		
 		if(freeRegs.size() != REGISTERS.length){
 			//some function did not free a register it used, but no errors were encountered.
@@ -87,8 +86,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		return prog;
 	}
 	
-	@Override
-	public Instruction visitProgram(ProgramContext ctx) {
+	public void visitProgram(ArrayList<FunctionContext> functions, ArrayList<StatContext> statements) {
 		Label start = new Label("program-begin");
 		
 		for(int i = 0; i < symboltable.getCurrentScope().getOffset(); i++){
@@ -101,20 +99,20 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		prog.addInstr(OpCode.Jump, Target.abs(start));
 		
 		//prepare function labels
-		for(FunctionContext f : ctx.function()){
+		for(FunctionContext f : functions){
 			Function func = funcTable.getFunction(f);
 			Label label = new Label("func " + func.getName());
 			
 			functionLabels.put(func, label);
 		}
 		
-		for(FunctionContext func : ctx.function()){
+		for(FunctionContext func : functions){
 			visit(func);
 		}
 		
 		prog.addInstr(start, OpCode.Nop);
 		
-		for(StatContext stat : ctx.stat()){
+		for(StatContext stat : statements){
 			visit(stat);
 		}
 		
@@ -124,8 +122,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		}
 		
 		prog.addInstr(OpCode.EndProg);
-		
-		return null;
 	}
 	
 	//statements
@@ -200,6 +196,8 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			
 			Label thenLabel = new Label("then"), endLabel = new Label("endif");
 			prog.addInstr(OpCode.Branch, regs.get(ctx.expr()), Target.abs(thenLabel));
+			freeReg(ctx.expr());
+
 			visit(ctx.stat(1));
 			prog.addInstr(OpCode.Jump, Target.abs(endLabel));
 			visit(ctx.stat(0)).setLabel(thenLabel);
@@ -209,11 +207,11 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			Reg reg = regs.get(ctx.expr());
 			prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);//inverse
 			prog.addInstr(OpCode.Branch, reg, Target.abs(endLabel));
+			freeReg(ctx.expr());
+			
 			visit(ctx.stat(0));
 			prog.addInstr(endLabel, OpCode.Nop);
 		}
-		
-		freeReg(ctx.expr());
 		
 		return i;
 	}
@@ -270,11 +268,11 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		Reg reg = regs.get(ctx.expr());
 		prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);//inverse
 		prog.addInstr(OpCode.Branch, reg, Target.abs(endLabel));
+		freeReg(ctx.expr());
+		
 		visit(ctx.stat());
 		prog.addInstr(OpCode.Jump, Target.abs(compLabel));
 		prog.addInstr(endLabel, OpCode.Nop);
-		
-		freeReg(ctx.expr());
 		
 		return i;
 	}
@@ -367,9 +365,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		visit(ctx.expr());
 		Reg exprReg = regs.get(ctx.expr());
 		
-		//prog.addInstr(OpCode.Const, offset, reg);
-		
-//		Type subType = type;
 		Type subType = ((ArrayType) type).getType();
 		if(subType.getSize() != 1) {//no need to multiply by one
 			Reg multReg = newReg();
@@ -380,8 +375,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		prog.addInstr(OpCode.Compute, Operator.Sub, reg, exprReg, reg);
 		freeReg(exprReg);
-		
-//		addresses.put(ctx, MemAddr.deref(reg));
 		
 		return i;
 	}
@@ -513,7 +506,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		if (ctx.prefixOp().SUB() != null) {
 			//unary minus
-			prog.addInstr(OpCode.Compute, Operator.Sub, 0, reg, reg);
+			prog.addInstr(OpCode.Compute, Operator.Sub, Reg.Zero, reg, reg);
 		} else {
 			//not
 			prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);

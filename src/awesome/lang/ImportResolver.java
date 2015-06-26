@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
@@ -31,7 +32,20 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 	public ImportResolver(Path filePath) {
 		mainDir = filePath.getParent();
 		
+		importDefault();
 		attemptImport(filePath);
+	}
+	
+	public ImportResolver(String program) {
+		//search relative to working directory
+		mainDir = Paths.get("/");
+		
+		importDefault();
+		visitProgram(Util.parseProgram(new ANTLRInputStream(program)));
+	}
+	
+	private void importDefault() {
+		attemptImport(Paths.get("stdlib", "default.awl"));
 	}
 	
 	@Override

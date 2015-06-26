@@ -3,9 +3,6 @@ package awesome.lang;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.tree.ParseTree;
-
 import awesome.lang.checking.TypeChecker;
 import awesome.lang.model.Program;
 
@@ -14,23 +11,19 @@ import awesome.lang.model.Program;
  */
 public class Compiler {
 	public Program compile(String program) throws CompilationException {
-		ANTLRInputStream ips = new ANTLRInputStream(program);
-		
-		ParseTree tree = Util.parseProgram(ips);
-		
-		if(tree == null)
-			throw new CompilationException("Parse error", new ArrayList<String>());
+//		ParseTree tree = Util.parseProgram(ips);
+		ImportResolver resolver = new ImportResolver(program);
 		
 		// walk through
 		TypeChecker checker = new TypeChecker();
-		tree.accept(checker);
+		checker.checkProgram(resolver.getFunctions(), resolver.getStatements());
 		
 		if (checker.getErrors().size() > 0) {
 			throw new CompilationException("Error(s) during type checking", checker.getErrors());
 		}
 		
 		Generator generator = new Generator(checker.getSymbolTable(), checker.getFunctionTable());
-		return generator.genProgram(tree);
+		return generator.genProgram(resolver.getFunctions(), resolver.getStatements());
 	}
 	
 	public class CompilationException extends Exception {
