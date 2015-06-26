@@ -579,12 +579,17 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		return genBinaryInstr(op, ctx, ctx.expr(0), ctx.expr(1));
 	}
-	
+
 	@Override
 	public Instruction visitMultDivExpr(MultDivExprContext ctx) {
 		Operator op = ctx.multDivOp().MULT() != null ? Operator.Mul : Operator.Div;
 		
 		return genBinaryInstr(op, ctx, ctx.expr(0), ctx.expr(1));
+	}
+
+	@Override
+	public Instruction visitModExpr(ModExprContext ctx) {
+		return genBinaryInstr(Operator.Mod, ctx, ctx.expr(0), ctx.expr(1));
 	}
 	
 	@Override

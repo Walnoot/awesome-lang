@@ -44,6 +44,7 @@ ADD: '+';
 SUB: '-';
 MULT: '*';
 DIV: '/';
+MOD: 'mod';
 AND: 'and';
 OR: 'or';
 NOT: 'not';

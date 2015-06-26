@@ -434,6 +434,22 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	}
 
 	@Override
+	public Void visitModExpr(ModExprContext ctx) {
+		visit(ctx.expr(0));
+		visit(ctx.expr(1));
+		// valid types?
+		if (this.types.get(ctx.expr(0)) != Type.INT){
+			this.addError("First child of expression: {expr} is no integer", ctx);
+		} else if (this.types.get(ctx.expr(1)) != Type.INT) {
+			this.addError("Second child of expression: {expr} is no integer", ctx);
+		}
+		
+		this.types.put(ctx, Type.INT);
+		return null;
+		
+	}
+
+	@Override
 	public Void visitFuncExpr(FuncExprContext ctx) {
 		visit(ctx.functionCall());
 		this.types.put(ctx, this.types.get(ctx.functionCall()));

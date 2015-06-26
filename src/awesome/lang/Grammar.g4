@@ -47,6 +47,7 @@ type: INT						#intType
 /** Expression. */
 expr: prefixOp expr			#prefixExpr
 	| expr addSubOp expr	#addSubExpr
+	| expr MOD expr			#modExpr
 	| expr multDivOp expr	#multDivExpr
 	| expr compOp expr		#compExpr
 	| expr boolOp expr		#boolExpr
