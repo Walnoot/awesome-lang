@@ -9,6 +9,7 @@ RB: ')';
 LSB: '[';
 RSB: ']';
 COLON: ':';
+ARROW: '->';
 COMMA: ',';
 
 IF: 'if';

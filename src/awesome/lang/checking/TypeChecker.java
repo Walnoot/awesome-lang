@@ -66,8 +66,15 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			// set return type, for return statements
 			this.returnType = func.getFunctionType().getReturnType();
 			
-			// execute stat/subscopes
-			visit(((FunctionContext) child).stat());
+			// execute stat/subscopes or return expression
+			if (child.stat() != null)
+				visit(child.stat());
+			else {
+				visit(child.expr());
+				if (this.returnType.equals(this.types.get(child.expr())) == false) {
+					this.addError("Return type does not match function definition in expression: {expr}", child);
+				}
+			}
 			
 			// reset return type and finalize
 			this.returnType = null;
@@ -119,7 +126,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		
 		Type retType = typeExpr == null ? Type.VOID : this.types.get(typeExpr);
 		
-		if(retType != Type.VOID && !hasReturn(ctx.stat())){
+		if(retType != Type.VOID && ctx.expr() == null && !hasReturn(ctx.stat())){
 			addError("Function " + ctx.ID().getText() + " does not return properly", ctx);
 		}
 		

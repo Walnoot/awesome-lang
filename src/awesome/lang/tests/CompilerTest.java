@@ -109,6 +109,7 @@ public class CompilerTest {
 		testProgram("int a(int n):return b(n); int b(int n):return n-1; print(a(2)); ","1");
 		testProgram("int fac(int n):{if(n == 0) return 1; else return n * fac(n-1);} print(fac(3)); ","6");
 		testProgram("int fib(int n):{if(n <= 1) return 1; else return fib(n-2) + fib(n-1);} print(fib(5)); ","8");
+		testProgram("int i = 1; int add(int a, int b) -> a+b; int add(int a, int b, int c) -> add(a, b) + c; print(add(1,2,3));","6");
 	}
 	
 	@Test

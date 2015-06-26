@@ -420,14 +420,20 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	public Instruction visitFunction(FunctionContext ctx) {
 		Function function = funcTable.getFunction(ctx);
 		Label label = functionLabels.get(function);
+		Instruction first;
 		
-		Instruction first = visit(ctx.stat());
-		first.setLabel(label);
-		
-		if(function.getFunctionType().getReturnType() == Type.VOID){
-			makeReturn(Reg.Zero);
+		if (ctx.stat() != null) {
+			first = visit(ctx.stat());
+			if(function.getFunctionType().getReturnType() == Type.VOID){
+				makeReturn(Reg.Zero);
+			}
+		} else {
+			first = visit(ctx.expr());
+			Reg retReg = this.regs.get(ctx.expr());
+			makeReturn(retReg);
+			freeReg(retReg);
 		}
-		
+		first.setLabel(label);
 		return first;
 	}
 	
