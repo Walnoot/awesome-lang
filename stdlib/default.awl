@@ -1,5 +1,20 @@
 //this program is imported with every program
 
+int allocCounter = 0;
+int alloc(int size): {
+	int ret = allocCounter;
+	allocCounter = allocCounter + size;
+	return ret;
+}
+
+thread function(): {
+	print(4);
+	print(4);
+	print(4);
+	print(4);
+}
+
+//converts num to decimal and writes it to stdout
 int stdio = 16777216;
 print(int num): {
 	[int:12] chars;
@@ -19,16 +34,12 @@ print(int num): {
 	}
 	
 	if(neg){
+		//output '-'
 		write (45) stdio;
 	}
 	
 	for(int j = i-1; j >= 0; j = j-1){
 		write (chars[j] + 48) stdio;
 	}
-}
-
-println(int num): {
-	print(num);
-	write (10) stdio;
 }
 

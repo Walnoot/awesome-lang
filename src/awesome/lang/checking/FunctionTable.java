@@ -148,6 +148,10 @@ public class FunctionTable {
 			this.scope = scope;
 		}
 		
+		public boolean isThreadFunction(){
+			//TODO: make this
+			return false;
+		}
 	}
 	
 }

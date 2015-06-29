@@ -34,7 +34,7 @@ target: ID					#idTarget
 
 argument: type ID;
 
-function: type? ID LB (argument (COMMA argument)*)? RB (COLON stat | ARROW expr SEMI);
+function: THREAD? type? ID LB (argument (COMMA argument)*)? RB (COLON stat | ARROW expr SEMI);
 
 functionCall: ID LB (expr (COMMA expr)*)? RB;
 

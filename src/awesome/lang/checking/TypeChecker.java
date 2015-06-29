@@ -135,6 +135,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			argTypes[i] = this.types.get(ctx.argument(i));
 		}
 		
+		boolean thread = ctx.THREAD() != null;
+		//TODO: check args + return type
+		
 		FunctionType fType = Type.function(retType, argTypes); 
 		String name  	   = ctx.ID().getText(); 
 		if (this.functions.containsWithArgs(name, fType)) {

@@ -10,12 +10,44 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
-import awesome.lang.GrammarParser.*;
+import awesome.lang.GrammarParser.AddSubExprContext;
+import awesome.lang.GrammarParser.ArrayTargetContext;
+import awesome.lang.GrammarParser.AssignStatContext;
+import awesome.lang.GrammarParser.BlockContext;
+import awesome.lang.GrammarParser.BoolExprContext;
+import awesome.lang.GrammarParser.CompExprContext;
+import awesome.lang.GrammarParser.DeclAssignStatContext;
+import awesome.lang.GrammarParser.DeclStatContext;
+import awesome.lang.GrammarParser.DoStatContext;
+import awesome.lang.GrammarParser.ExprContext;
+import awesome.lang.GrammarParser.FalseExprContext;
+import awesome.lang.GrammarParser.ForStatContext;
+import awesome.lang.GrammarParser.FuncExprContext;
+import awesome.lang.GrammarParser.FuncStatContext;
+import awesome.lang.GrammarParser.FunctionCallContext;
+import awesome.lang.GrammarParser.FunctionContext;
+import awesome.lang.GrammarParser.IdTargetContext;
+import awesome.lang.GrammarParser.IfStatContext;
+import awesome.lang.GrammarParser.ModExprContext;
+import awesome.lang.GrammarParser.MultDivExprContext;
+import awesome.lang.GrammarParser.NextStatContext;
+import awesome.lang.GrammarParser.NumExprContext;
+import awesome.lang.GrammarParser.ParExprContext;
+import awesome.lang.GrammarParser.PrefixExprContext;
+import awesome.lang.GrammarParser.ReadExprContext;
+import awesome.lang.GrammarParser.ReturnStatContext;
+import awesome.lang.GrammarParser.StatContext;
+import awesome.lang.GrammarParser.SwitchStatContext;
+import awesome.lang.GrammarParser.TargetContext;
+import awesome.lang.GrammarParser.TargetExprContext;
+import awesome.lang.GrammarParser.TrueExprContext;
+import awesome.lang.GrammarParser.VarStatContext;
+import awesome.lang.GrammarParser.WhileStatContext;
+import awesome.lang.GrammarParser.WriteStatContext;
 import awesome.lang.checking.FunctionTable;
 import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.checking.SymbolTable;
 import awesome.lang.model.*;
-import awesome.lang.model.Type.ArrayType;
 
 /**
  * Generates sprockell code, visit methods return the first instruction of the
@@ -32,12 +64,15 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	private ParseTreeProperty<Reg> regs;
 	private ArrayList<Reg> freeRegs;
 	private HashMap<Function, Label> functionLabels;
+	private HashMap<Function, Integer> threadIdMap;//assigns an unique int to every thread function
 	private Program prog;
 
 	private SymbolTable symboltable;
 	private FunctionTable funcTable;
 
 	private Label nextSwitchLabel = null;
+
+	private int staticBlockStart;
 	
 	public Generator(SymbolTable symboltable, FunctionTable funcTable) {
 		this.symboltable = symboltable;
@@ -50,9 +85,11 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		regs = new ParseTreeProperty<Reg>();
 		functionLabels = new HashMap<Function, Label>();
 		
+		staticBlockStart = 0xFFFFFF - symboltable.getCurrentScope().getOffset();
+		
 		visitProgram(functions, statements);
 		
-		if(freeRegs.size() != REGISTERS.length){
+		if(freeRegs.size() != REGISTERS.length) {
 			//some function did not free a register it used, but no errors were encountered.
 			System.err.println("Non-fatal register leak encountered.");
 		}
@@ -63,14 +100,15 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	public void visitProgram(ArrayList<FunctionContext> functions, ArrayList<StatContext> statements) {
 		Label start = new Label("program-begin");
 		
-		for(int i = 0; i < symboltable.getCurrentScope().getOffset(); i++){
-			prog.addInstr(OpCode.Push, Reg.Zero);
-		}
+//		for(int i = 0; i < symboltable.getCurrentScope().getOffset(); i++){
+//			prog.addInstr(OpCode.Push, Reg.Zero);
+//		}
 		
 		//set initial ARP
 		prog.addInstr(OpCode.Compute, Operator.Add, Reg.Zero, Reg.SP, ARP);
 		
-		prog.addInstr(OpCode.Jump, Target.abs(start));
+		ArrayList<Function> threads = new ArrayList<Function>();
+		int threadCounter = 1;
 		
 		//prepare function labels
 		for(FunctionContext f : functions){
@@ -78,7 +116,28 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			Label label = new Label("func " + func.getName());
 			
 			functionLabels.put(func, label);
+			
+			if(func.isThreadFunction()){
+				threads.add(func);
+				threadIdMap.put(func, staticBlockStart - threadCounter);
+				threadCounter++;
+			}
 		}
+		
+		Reg reg = newReg();
+		for(int i = 0; i <= threads.size(); i++){
+			prog.addInstr(OpCode.Const, i, reg);
+			prog.addInstr(OpCode.Compute, Operator.Equal, reg, Reg.SPID, reg);
+			if(i == 0){
+				//main thread
+				prog.addInstr(OpCode.Branch, reg, Target.abs(start));
+			}else{
+				//'sub' thread
+				Function function = threads.get(i-1);
+				prog.addInstr(OpCode.Branch, reg, Target.abs(functionLabels.get(function)));
+			}
+		}
+		freeReg(reg);
 		
 		for(FunctionContext func : functions){
 			visit(func);
@@ -150,7 +209,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	public Instruction visitDeclStat(DeclStatContext ctx) {
 		return prog.addInstr(OpCode.Nop);
 	}
-	
 	
 	private Instruction assign(ExprContext exprContext, MemAddr addr, boolean global) {
 		Instruction i = visit(exprContext);
@@ -363,7 +421,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			prog.addInstr(OpCode.Compute, Operator.Add, ARP, reg, reg);
 			return instr;
 		} else {
-			Instruction instr = prog.addInstr(OpCode.Const, offset, reg);
+			Instruction instr = prog.addInstr(OpCode.Const, offset + staticBlockStart, reg);
 			return instr;
 		}
 	}

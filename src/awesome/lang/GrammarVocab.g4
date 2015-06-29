@@ -25,6 +25,7 @@ IMPORT: 'import';
 RETURN: 'return';
 WRITE: 'write';
 READ: 'read';
+THREAD: 'thread';
 SEMI: ';';
 ASSIGN: '=';
 
