@@ -196,15 +196,17 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			argTypes[i] = this.types.get(ctx.argument(i));
 		}
 		
-		boolean thread = ctx.THREAD() != null;
-		//TODO: check args + return type
+		boolean thread = (ctx.THREAD() != null);
+		if (thread && ctx.argument().size() > 0) {
+			this.addError("Thread definition contains arguments in expression: {expr}", ctx);
+		}
 		
 		FunctionType fType = Type.function(retType, argTypes); 
 		String name  	   = ctx.ID().getText(); 
 		if (this.functions.containsWithArgs(name, fType)) {
 			this.addError("Double function definition with the same arguments in expression: {expr}", ctx);
 		} else {
-			this.functions.addFunction(name, fType);
+			this.functions.addFunction(name, fType, thread);
 		}
 		
 		this.functions.addContextToFunction(ctx, fType);

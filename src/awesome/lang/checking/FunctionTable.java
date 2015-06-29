@@ -2,16 +2,13 @@ package awesome.lang.checking;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
 import awesome.lang.GrammarParser.FunctionCallContext;
 import awesome.lang.GrammarParser.FunctionContext;
-import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.model.Scope;
 import awesome.lang.model.Type;
 import awesome.lang.model.Type.FunctionType;
@@ -21,7 +18,7 @@ public class FunctionTable {
 	private HashMap<String, ArrayList<Function>> types = new HashMap<String, ArrayList<Function>>();
 	private ParseTreeProperty<Function> contextTypes   = new ParseTreeProperty<Function>();
 	
-	public boolean addFunction(String name, Type.FunctionType type) {
+	public boolean addFunction(String name, Type.FunctionType type, boolean isThread) {
 		
 		if (this.types.containsKey(name) == false)
 			this.types.put(name, new ArrayList<Function>());
@@ -29,7 +26,7 @@ public class FunctionTable {
 		if (this.containsWithArgs(name, type))
 			return false;
 		
-		this.types.get(name).add(new Function(name, type));
+		this.types.get(name).add(new Function(name, type, isThread));
 		return true;
 	}
 
@@ -125,10 +122,16 @@ public class FunctionTable {
 		private final String name;
 		private final FunctionType type;
 		private Scope scope;
+		private boolean isThread;
 
-		private Function(String name, FunctionType type){
+		private Function(String name, FunctionType type) {
+			this(name, type, false);
+		}
+		
+		private Function(String name, FunctionType type, boolean isThread){
 			this.name = name;
 			this.type = type;
+			this.isThread = isThread;
 			
 		}
 		
@@ -149,8 +152,7 @@ public class FunctionTable {
 		}
 		
 		public boolean isThreadFunction(){
-			//TODO: make this
-			return false;
+			return this.isThread;
 		}
 	}
 	

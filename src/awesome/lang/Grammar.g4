@@ -36,7 +36,7 @@ argument: type ID;
 
 enumDef: ENUM ID LCB (ID (COMMA ID)*)? RCB;
 
-function: THREAD? type? ID LB (argument (COMMA argument)*)? RB (COLON stat | ARROW expr SEMI);
+function: (THREAD | type?) ID LB (argument (COMMA argument)*)? RB (COLON stat | ARROW expr SEMI);
 
 functionCall: ID LB (expr (COMMA expr)*)? RB;
 
