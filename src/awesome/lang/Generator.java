@@ -19,6 +19,7 @@ import awesome.lang.GrammarParser.CompExprContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
 import awesome.lang.GrammarParser.DeclStatContext;
 import awesome.lang.GrammarParser.DoStatContext;
+import awesome.lang.GrammarParser.EnumExprContext;
 import awesome.lang.GrammarParser.ExprContext;
 import awesome.lang.GrammarParser.FalseExprContext;
 import awesome.lang.GrammarParser.ForStatContext;
@@ -713,6 +714,12 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	public Instruction visitNumExpr(NumExprContext ctx) {
 		int num = Integer.parseInt(ctx.NUM().getText());
 		
+		return prog.addInstr(OpCode.Const, num, newReg(ctx));
+	}
+
+	@Override
+	public Instruction visitEnumExpr(EnumExprContext ctx) {
+		int num = Type.getEnum(ctx.ID(0).getText()).getValue(ctx.ID(1).getText());
 		return prog.addInstr(OpCode.Const, num, newReg(ctx));
 	}
 	

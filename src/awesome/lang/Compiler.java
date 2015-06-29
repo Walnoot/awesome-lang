@@ -16,7 +16,7 @@ public class Compiler {
 		
 		// walk through
 		TypeChecker checker = new TypeChecker();
-		checker.checkProgram(resolver.getFunctions(), resolver.getStatements());
+		checker.checkProgram(resolver.getFunctions(), resolver.getStatements(), resolver.getEnums());
 		
 		if (checker.getErrors().size() > 0) {
 			throw new CompilationException("Error(s) during type checking", checker.getErrors());

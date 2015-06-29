@@ -91,13 +91,27 @@ public class CompilerTest {
 		testProgram("int i=0;while(i<5){i=i+1;} print(i);", "5");
 		testProgram("int i=0;int j=0;while(i<3){i=i+1;j=j+2;} print(j);", "6");
 	}
+	
+	@Test
+	public void testEnums() throws IOException, InterruptedException, CompilationException {
+		testProgram("enum pers { michiel, jacco} if (pers.michiel != pers.jacco) { print(1); }","1");
+		testProgram("room location = room.basement; "
+				  + "enum room { kitchen, livingroom, basement } "
+				  + "switch(location) {"
+				  + " case room.kitchen { print(1); }"
+				  + " case room.livingroom { print(2); }"
+				  + " case room.basement { print(3); } "
+				  + "}", "3");
+	
+		
+	}
 
 	@Test
 	public void testArrays() throws IOException, InterruptedException, CompilationException {
 		testProgram("[int:5] x; x[0] = 5; print(x[0]);", "5");
 		testProgram("int x=1;[int:2] y; int z=4; y[0]=2; y[1]=9; print(x); print(z);", "14");
 		testProgram("int i=0;[int:4] x; while(i < 4) {x[i] = i; i = i + 1;} print(x[3]);", "3");
-		testProgram("[[int:2]:5] x; x[0][0] = 5;", "");
+		testProgram("[[int:2]:5] x; for(int i = 0; i <5; i=i+1) { x[i][0] = i; x[i][1] = i*i; } for(i = 0; i < 5; i=i+1) { for (int j = 0; j < 2; j=j+1) { print(x[i][j]); } }", "00112439416");
 	}
 
 	@Test

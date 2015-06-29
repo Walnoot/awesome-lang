@@ -2,7 +2,7 @@ grammar Grammar;
 
 import GrammarVocab;
 
-program: imprt* (stat | function)*;
+program: imprt* (stat | function | enumDef)*;
 
 imprt: IMPORT STRING SEMI;
 
@@ -21,7 +21,6 @@ stat: varSubStat SEMI										#varStat
 	| block													#blockStat 
 	;
 
-
 varSubStat: type ID				#declStat
 	   | target ASSIGN expr		#assignStat
 	   | type ID ASSIGN expr	#declAssignStat
@@ -32,7 +31,10 @@ target: ID					#idTarget
 	  | target LSB expr RSB	#arrayTarget
 	  ;
 
+
 argument: type ID;
+
+enumDef: ENUM ID LCB (ID (COMMA ID)*)? RCB;
 
 function: THREAD? type? ID LB (argument (COMMA argument)*)? RB (COLON stat | ARROW expr SEMI);
 
@@ -41,6 +43,7 @@ functionCall: ID LB (expr (COMMA expr)*)? RB;
 type: INT						#intType
 	| BOOL						#boolType
 	| LSB type COLON NUM RSB	#arrayType
+	| ID						#enumType
 	;
 
 /** Expression. */
@@ -57,6 +60,7 @@ expr: prefixOp expr			#prefixExpr
 	| TRUE					#trueExpr
 	| FALSE					#falseExpr
 	| functionCall			#funcExpr
+	| ID DOT ID				#enumExpr
 	;
 
 /** Prefix operator. */

@@ -1,11 +1,14 @@
 package awesome.lang.model;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class Type {
 	public static final Type INT = new Type(1, "int");
 	public static final Type BOOL = new Type(1, "bool");
 	public static final Type VOID = new Type(1, "void");
+	private static HashMap<String, EnumType> enums = new HashMap<String, EnumType>();
 	
 	private int size;
 	private String name;
@@ -28,6 +31,19 @@ public class Type {
 		return name;
 	}
 	
+	public static boolean enumExists(String name) {
+		return Type.enums.containsKey(name);
+	}
+	
+	/**
+	 * If not exists, returns null. 
+	 */
+	public static EnumType getEnum(String name) {
+		if (Type.enumExists(name) == false)
+			return null;
+		return Type.enums.get(name);
+	}
+	
 	/**
 	 * Returns the type of a fixed size array with given type and size.
 	 */
@@ -39,6 +55,47 @@ public class Type {
 	 */
 	public static FunctionType function(Type type, Type... args) {
 		return new FunctionType(type, args);
+	}
+	
+	/**
+	 * Returns the type of an enumerator, with given name and values. Returns null if the name is already taken
+	 */
+	public static EnumType newEnum(String name, ArrayList<String> values) {
+		if (Type.enums.containsKey(name))
+			return null;
+		
+		EnumType newEnum = new EnumType(name, values);
+		Type.enums.put(name, newEnum);
+		return newEnum;
+	}
+	
+	public static class EnumType extends Type {
+		
+		private HashMap<String, Integer> values = new HashMap<String, Integer>();
+
+		private EnumType(String name, ArrayList<String> values) {
+			super(Type.INT.getSize(), name);// mapped as int
+			int i = 1; // first value
+			for(String el : values) {
+				this.values.put(el, i++);
+			}
+		}
+		
+		/*
+		 * returns 0 if not found
+		 */
+		public int getValue(String name) {
+			if (!this.contains(name))
+				return 0;
+			
+			return this.values.get(name);
+		}
+		
+		public boolean contains(String name) {
+			return this.values.containsKey(name);
+		}
+		
+		
 	}
 	
 	public static class ArrayType extends Type {

@@ -11,6 +11,7 @@ RSB: ']';
 COLON: ':';
 ARROW: '->';
 COMMA: ',';
+DOT: '.';
 
 IF: 'if';
 ELSE: 'else';
@@ -31,6 +32,7 @@ ASSIGN: '=';
 
 INT: 'int';
 BOOL: 'bool';
+ENUM: 'enum';
 
 TRUE: 'true';
 FALSE: 'false';
