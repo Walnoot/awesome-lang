@@ -1,18 +1,14 @@
 //this program is imported with every program
 
-/*int allocCounter = 0;
+int allocCounter = 0;
+lock allocLock;
 int alloc(int size): {
+	acquire allocLock;
 	int ret = allocCounter;
 	allocCounter = allocCounter + size;
+	release allocLock;
 	return ret;
 }
-
-thread function(): {
-	print(4);
-	print(4);
-	print(4);
-	print(4);
-}*/
 
 lock printlock;
 
@@ -46,4 +42,3 @@ print(int num): {
 	}
 	release printlock;
 }
-

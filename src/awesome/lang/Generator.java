@@ -98,10 +98,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		prog.setNumSprockells(threads.size() + 1);
 		
 		Reg reg = newReg();
-		prog.addInstr(OpCode.Const, 1, reg);
-		for(Function thread : threads){
-			prog.addInstr(OpCode.Write, reg, MemAddr.direct(threadIdMap.get(thread)));
-		}
+//		prog.addInstr(OpCode.Const, 1, reg);
+//		for(Function thread : threads){
+//			prog.addInstr(OpCode.Write, reg, MemAddr.direct(threadIdMap.get(thread)));
+//		}
 		
 		for(int i = 0; i <= threads.size(); i++){
 			prog.addInstr(OpCode.Const, i, reg);
@@ -393,11 +393,13 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	@Override
 	public Instruction visitAcquireStat(AcquireStatContext ctx) {
 		Instruction instruction = visit(ctx.target());
+		Label label = new Label("lock-acquire");
+		instruction.setLabel(label );
 		Reg reg = regs.get(ctx.target());
 		prog.addInstr(OpCode.TestAndSet, MemAddr.deref(reg));
 		prog.addInstr(OpCode.Receive, reg);
 		prog.addInstr(OpCode.Branch, reg, Target.rel(2));
-		prog.addInstr(OpCode.Jump, Target.rel(-3));
+		prog.addInstr(OpCode.Jump, Target.abs(label));
 		
 		freeReg(ctx.target());
 		return instruction;
@@ -478,25 +480,28 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	public Instruction visitFunction(FunctionContext ctx) {
 		Function function = funcTable.getFunction(ctx);
 		Label label = functionLabels.get(function);
-		Instruction first;
+		Instruction first = null;
 		
 		if(function.isThreadFunction()) {
 			Label tLabel = new Label("thread-wait");
-			prog.addInstr(tLabel, OpCode.TestAndSet, MemAddr.direct(threadIdMap.get(function)));
+			first = prog.addInstr(tLabel, OpCode.Read, MemAddr.direct(threadIdMap.get(function)));
 			Reg reg = newReg();
 			prog.addInstr(OpCode.Receive, reg);
+			prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);
 			prog.addInstr(OpCode.Branch, reg, Target.abs(tLabel));
 			
 			freeReg(reg);
 		}
 		
 		if (ctx.stat() != null) {
-			first = visit(ctx.stat());
+			Instruction i = visit(ctx.stat());
+			if(first == null) first = i;
 			if(function.getFunctionType().getReturnType() == Type.VOID && !function.isThreadFunction()){
 				makeReturn(Reg.Zero);
 			}
 		} else {
-			first = visit(ctx.expr());
+			Instruction i = visit(ctx.expr());
+			if(first == null) first = i;
 			Reg retReg = this.regs.get(ctx.expr());
 			makeReturn(retReg);
 			freeReg(retReg);
@@ -515,8 +520,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		Function func = funcTable.getFunction(ctx);
 		
 		if(func.isThreadFunction()) {
-			newReg(ctx);
-			return prog.addInstr(OpCode.Write, Reg.Zero, MemAddr.direct(threadIdMap.get(func)));
+			Reg reg = newReg(ctx);
+			Instruction instr = prog.addInstr(OpCode.Const, 1, reg);
+			prog.addInstr(OpCode.Write, reg, MemAddr.direct(threadIdMap.get(func)));
+			return instr;
 		} else {
 			return callFunction(func, ctx);
 		}
