@@ -657,6 +657,13 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		return prog.addInstr(OpCode.Const, num, newReg(ctx));
 	}
+
+	@Override
+	public Instruction visitEnumExpr(EnumExprContext ctx) {
+		int num = Type.getEnum(ctx.ID(0).getText()).getValue(ctx.ID(1).getText());
+		return prog.addInstr(OpCode.Const, num, newReg(ctx));
+		
+	}
 	
 	@Override
 	public Instruction visitTrueExpr(TrueExprContext ctx) {

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
 
+import awesome.lang.GrammarParser.EnumDefContext;
 import awesome.lang.GrammarParser.FunctionContext;
 import awesome.lang.GrammarParser.ImprtContext;
 import awesome.lang.GrammarParser.ProgramContext;
@@ -18,6 +19,7 @@ import awesome.lang.GrammarParser.StatContext;
 public class ImportResolver extends GrammarBaseVisitor<Void> {
 	private ArrayList<StatContext> statements = new ArrayList<StatContext>();
 	private ArrayList<FunctionContext> functions = new ArrayList<FunctionContext>();
+	private ArrayList<EnumDefContext> enums = new ArrayList<EnumDefContext>();
 	
 	//list of files that were imported, to resolve circular dependencies
 	private ArrayList<String> imports = new ArrayList<String>();
@@ -58,6 +60,10 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 			}
 		}
 		
+		for(EnumDefContext enu : ctx.enumDef()) {
+			enums.add(enu);
+		}
+		
 		for (StatContext stat : ctx.stat()) {
 			statements.add(stat);
 		}
@@ -94,9 +100,13 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 	public ArrayList<StatContext> getStatements() {
 		return statements;
 	}
-	
+
 	public ArrayList<FunctionContext> getFunctions() {
 		return functions;
+	}
+	
+	public ArrayList<EnumDefContext> getEnums() {
+		return enums;
 	}
 	
 	/**
