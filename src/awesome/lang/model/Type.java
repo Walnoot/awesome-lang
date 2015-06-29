@@ -8,6 +8,7 @@ public class Type {
 	public static final Type INT = new Type(1, "int");
 	public static final Type BOOL = new Type(1, "bool");
 	public static final Type VOID = new Type(1, "void");
+	public static final Type LOCK = new Type(1, "lock");
 	private static HashMap<String, EnumType> enums = new HashMap<String, EnumType>();
 	
 	private int size;
@@ -81,7 +82,7 @@ public class Type {
 			}
 		}
 		
-		/*
+		/**
 		 * returns 0 if not found
 		 */
 		public int getValue(String name) {

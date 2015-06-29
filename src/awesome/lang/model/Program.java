@@ -38,6 +38,10 @@ public class Program {
 		instructions.add(instr);
 	}
 	
+	public void setNumSprockells(int numSprockells) {
+		this.numSprockells = numSprockells;
+	}
+	
 	public void writeSprockell(String pathName) throws IOException{
 		writeSprockell(Paths.get("gen", pathName));
 	}

@@ -23,7 +23,7 @@ public class Target {
 	}
 	
 	public static Target rel(int address) {
-		return new Target("Rel", address);
+		return new Target("Rel", "(" + address + ")");
 	}
 	
 	public static Target ind(Reg reg) {
