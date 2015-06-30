@@ -48,8 +48,8 @@ public class Type {
 	/**
 	 * Returns the type of a fixed size array with given type and size.
 	 */
-	public static ArrayType array(Type type, int size) {
-		return new ArrayType(type, size);
+	public static ArrayType array(Type type) {
+		return new ArrayType(type);
 	}
 	/**
 	 * Returns the type of a fixed size function with given type and arguments.
@@ -102,8 +102,8 @@ public class Type {
 	public static class ArrayType extends Type {
 		private Type type;
 		
-		private ArrayType(Type type, int size) {
-			super(size*type.getSize(), String.format("[%s:%d]", type.toString(), size));
+		private ArrayType(Type type) {
+			super(1, String.format("[%s]", type.toString()));
 			this.type = type;
 		}
 		
@@ -114,6 +114,15 @@ public class Type {
 		@Override
 		public boolean isArray() {
 			return true;
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if(obj instanceof ArrayType) {
+				return this.type.equals(((ArrayType) obj).type);
+			} else {
+				return false;
+			}
 		}
 	}
 	

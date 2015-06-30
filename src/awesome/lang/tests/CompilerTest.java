@@ -108,10 +108,11 @@ public class CompilerTest {
 
 	@Test
 	public void testArrays() throws IOException, InterruptedException, CompilationException {
-		testProgram("[int:5] x; x[0] = 5; print(x[0]);", "5");
-		testProgram("int x=1;[int:2] y; int z=4; y[0]=2; y[1]=9; print(x); print(z);", "14");
-		testProgram("int i=0;[int:4] x; while(i < 4) {x[i] = i; i = i + 1;} print(x[3]);", "3");
-		testProgram("[[int:2]:5] x; for(int i = 0; i <5; i=i+1) { x[i][0] = i; x[i][1] = i*i; } for(i = 0; i < 5; i=i+1) { for (int j = 0; j < 2; j=j+1) { print(x[i][j]); } }", "00112439416");
+		testProgram("[int] x = [5]; print(x[0]);", "5");
+		testProgram("int x=1;[int] y = [0,0]; int z=4; y[0]=2; y[1]=9; print(x); print(z);", "14");
+		testProgram("int i=0;[int] x = [0,0,0,0]; while(i < 4) {x[i] = i; i = i + 1;} print(x[3]);", "3");
+		testProgram("[[int]] x = [[0,7], [1,2], [2,6]]; for(int i=0; i<3;i=i+1)print(x[i][1]);", "726");
+		testProgram("[[int]] x = [[0,0], [0]]; x[1] = [4,7]; print(x[1][0]); print(x[1][1]);", "47");
 	}
 
 	@Test
@@ -141,7 +142,7 @@ public class CompilerTest {
 	@Test
 	public void testGlobals() throws IOException, InterruptedException, CompilationException {
 		//array x is stored in global mem
-		testProgram("[int:2] x; func(): x[1]=7; func(); print(x[1]);", "7");
+		testProgram("[int] x = [0,0]; func(): x[1]=7; func(); print(x[1]);", "7");
 	}
 	
 	@Test

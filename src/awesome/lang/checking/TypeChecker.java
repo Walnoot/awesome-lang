@@ -279,11 +279,11 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	public Void visitArrayType(ArrayTypeContext ctx) {
 		visit(ctx.type());
 		Type type = types.get(ctx.type());
-		int size = 1;//Integer.parseInt(ctx.NUM().getText());
 		
-		types.put(ctx, Type.array(type, size));
+		types.put(ctx, Type.array(type));
 		return null;
 	}
+	
 	@Override
 	public Void visitDeclAssignStat(DeclAssignStatContext ctx) {
 		// add new variable to scope (with value)
@@ -296,6 +296,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			this.addError("Redeclaration of variable "+ctx.ID().getText()+" in expression: {expr}", ctx);
 		}
 		if (type.equals(exprtype) == false) {
+			System.out.println("T1:" + type);
+			System.out.println("T2:" + exprtype);
+			System.out.println(type.equals(exprtype));
 			this.addError("type of variable "+ctx.ID().getText()+" is not equal to type of expression: {expr}", ctx);
 		}
 		return null;
@@ -627,7 +630,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 				this.addError("Invalid value of type "+type+" in expression: {expr}", ctx);
 			}
 		}
-		this.types.put(ctx, Type.array(cmp, 1));
+		this.types.put(ctx, Type.array(cmp));
 		return null;
 	}
 	

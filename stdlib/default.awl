@@ -16,7 +16,7 @@ lock printlock;
 int stdio = 16777216;
 print(int num): {
 	acquire printlock;
-	[int:12] chars;
+	[int] chars = [0,0,0,0,0,0,0,0,0,0,0,0];
 	int i = 0;
 	bool neg = num < 0;
 	if(neg) num = -num;

@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import org.antlr.v4.parse.ANTLRParser.throwsSpec_return;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
@@ -43,6 +44,11 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	private Label nextSwitchLabel = null;
 
 	private int staticBlockStart;
+
+	/**
+	 * Function in stdlib that allocates dynamic memory
+	 */
+	private Function allocFunc;
 	
 	public Generator(SymbolTable symboltable, FunctionTable funcTable) {
 		this.symboltable = symboltable;
@@ -92,6 +98,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 				threads.add(func);
 				threadIdMap.put(func, staticBlockStart - threadCounter);
 				threadCounter++;
+			}
+			
+			if(func.getName().equals("alloc")){
+				allocFunc = func;
 			}
 		}
 		
@@ -441,7 +451,27 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitArrayTarget(ArrayTargetContext ctx) {
-		Type type = symboltable.getType(ctx);
+		Instruction instr = visit(ctx.target());
+		Reg reg = regs.get(ctx.target());
+		regs.put(ctx, reg);
+		
+		if(isGlobal(ctx.target())) {
+			prog.addInstr(OpCode.Read, MemAddr.deref(reg));
+			prog.addInstr(OpCode.Receive, reg);
+		} else {
+			prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
+		}
+		
+		visit(ctx.expr());
+		prog.addInstr(OpCode.Compute, Operator.Add, reg, regs.get(ctx.expr()), reg);
+		freeReg(ctx.expr());
+
+//		prog.addInstr(OpCode.Read, MemAddr.deref(reg));
+//		prog.addInstr(OpCode.Receive, reg);
+		
+		return instr;
+		//oldoldold
+		/*Type type = symboltable.getType(ctx);
 		
 		Instruction i = visit(ctx.target());
 		Reg reg = regs.get(ctx.target());
@@ -449,7 +479,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		visit(ctx.expr());
 		Reg exprReg = regs.get(ctx.expr());
 		
-//		Type subType = ((ArrayType) type).getType();
 		if(type.getSize() != 1) {//no need to multiply by one
 			Reg multReg = newReg();
 			prog.addInstr(OpCode.Const, type.getSize(), multReg);
@@ -461,17 +490,17 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		prog.addInstr(OpCode.Compute, Operator.Add, reg, exprReg, reg);
 		freeReg(exprReg);
 		
-		return i;
+		return i;*/
 	}
 	
 	private boolean isGlobal(TargetContext ctx) {
 		if(ctx instanceof IdTargetContext){
 			return symboltable.isGlobal(ctx);
 		} else if(ctx instanceof ArrayTargetContext) {
-			return isGlobal(((ArrayTargetContext) ctx).target());
+			return true;
 		}
 		
-		return false;
+		throw new UnsupportedOperationException("Unknow target type");
 	}
 	
 	//functions
@@ -525,11 +554,11 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			prog.addInstr(OpCode.Write, reg, MemAddr.direct(threadIdMap.get(func)));
 			return instr;
 		} else {
-			return callFunction(func, ctx);
+			return callFunctionStart(func, newReg(ctx), ctx.expr());
 		}
 	}
 
-	private Instruction callFunction(Function func, FunctionCallContext ctx) {
+	private Instruction callFunctionStart(Function func, Reg reg, List<ExprContext> args) {
 		//AR:
 		//local var n
 		//local var 0
@@ -540,11 +569,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		//return value
 		//RegA .. RegB
 
-		//local vars + params + ARP + ret value + ret addr
-		//register saves dont count
-		int stackSize = func.getScope().getOffset() + 3;
-		
-		List<ExprContext> args = ctx.expr();
+//		List<ExprContext> args = ctx.expr();
 		
 		//reserve space for local variables
 		int localSize = func.getScope().getOffset() - args.size();
@@ -558,11 +583,17 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			ExprContext arg = args.get(i);
 			visit(arg);
 			
-			Reg reg = regs.get(arg);
-			prog.addInstr(OpCode.Push, reg);
-			freeReg(reg);
+			Reg tempReg = regs.get(arg);
+			prog.addInstr(OpCode.Push, tempReg);
+			freeReg(tempReg);
 		}
 		
+		functionCallRest(func, reg);
+		
+		return first;
+	}
+
+	private void functionCallRest(Function func, Reg reg) {
 		//caller's ARP
 		prog.addInstr(OpCode.Push, ARP);
 		
@@ -583,10 +614,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		//register save area
 		//we save every register that is currently used, i.e. every reg that's not on the free list
 		ArrayList<Reg> savedRegs = new ArrayList<Reg>();
-		for (Reg reg : REGISTERS) {
-			if (!freeRegs.contains(reg)) {
-				prog.addInstr(OpCode.Push, reg);
-				savedRegs.add(reg);
+		for (Reg rreg : REGISTERS) {
+			if (!freeRegs.contains(rreg)) {
+				prog.addInstr(OpCode.Push, rreg);
+				savedRegs.add(rreg);
 			}
 		}
 		
@@ -597,19 +628,13 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		//get registers back
 		Collections.reverse(savedRegs);
-		for(Reg reg : savedRegs) {
-			prog.addInstr(OpCode.Pop, reg);
+		for(Reg sreg : savedRegs) {
+			prog.addInstr(OpCode.Pop, sreg);
 		}
 		
-		Reg reg = newReg(ctx);
-		
-//		prog.addInstr(OpCode.Pop, reg);//return value
-//		
-//		prog.addInstr(OpCode.Pop, Reg.Zero);//return address
-//		prog.addInstr(OpCode.Pop, Reg.Zero);//callers arp
-//		for(int i = 0; i < func.getScope().getOffset(); i++) {
-//			prog.addInstr(OpCode.Pop, Reg.Zero);
-//		}
+		//local vars + params + ARP + ret value + ret addr
+		//register saves dont count
+		int stackSize = func.getScope().getOffset() + 3;
 		
 		//push stack back
 		prog.addInstr(OpCode.Const, stackSize, reg);
@@ -622,6 +647,18 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		//set old ARP back
 		prog.addInstr(OpCode.Load, MemAddr.deref(ARP), ARP);
+	}
+	
+	private Instruction alloc(int size, Reg reg) {
+		Function func = allocFunc;
+		int localSize = func.getScope().getOffset() - 1;
+		Instruction first = prog.addInstr(OpCode.Const, localSize, reg);
+		prog.addInstr(OpCode.Compute, Operator.Sub, Reg.SP, reg, Reg.SP);
+		
+		prog.addInstr(OpCode.Const, size, reg);
+		prog.addInstr(OpCode.Push, reg);
+		
+		functionCallRest(func, reg);
 		
 		return first;
 	}
@@ -776,6 +813,31 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		regs.put(ctx, reg);
 		
 		return i;
+	}
+	
+	@Override
+	public Instruction visitArrayValueExpr(ArrayValueExprContext ctx) {
+		Reg reg = newReg(ctx);
+		Instruction instr = alloc(ctx.expr().size(), reg);
+		
+		for(int i = 0; i < ctx.expr().size(); i++){
+			ExprContext expr = ctx.expr(i);
+			visit(expr);
+			prog.addInstr(OpCode.Write, regs.get(expr), MemAddr.deref(reg));
+			freeReg(expr);
+			
+			Reg temp = newReg();
+			prog.addInstr(OpCode.Const, 1, temp);
+			prog.addInstr(OpCode.Compute, Operator.Add, temp, reg, reg);
+			freeReg(temp);
+		}
+		
+		Reg temp = newReg();
+		prog.addInstr(OpCode.Const, ctx.expr().size(), temp);
+		prog.addInstr(OpCode.Compute, Operator.Sub, reg, temp, reg);
+		freeReg(temp);
+		
+		return instr;
 	}
 	
 	private Reg newReg(ParserRuleContext ctx) {
