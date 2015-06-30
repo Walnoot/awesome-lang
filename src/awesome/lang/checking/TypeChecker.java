@@ -8,48 +8,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
 import awesome.lang.*;
-import awesome.lang.GrammarParser.AddSubExprContext;
-import awesome.lang.GrammarParser.ArgumentContext;
-import awesome.lang.GrammarParser.ArrayTargetContext;
-import awesome.lang.GrammarParser.ArrayTypeContext;
-import awesome.lang.GrammarParser.ArrayValueExprContext;
-import awesome.lang.GrammarParser.AssignStatContext;
-import awesome.lang.GrammarParser.BlockContext;
-import awesome.lang.GrammarParser.BlockStatContext;
-import awesome.lang.GrammarParser.BoolExprContext;
-import awesome.lang.GrammarParser.BoolTypeContext;
-import awesome.lang.GrammarParser.CompExprContext;
-import awesome.lang.GrammarParser.DeclAssignStatContext;
-import awesome.lang.GrammarParser.DeclStatContext;
-import awesome.lang.GrammarParser.DoStatContext;
-import awesome.lang.GrammarParser.EnumDefContext;
-import awesome.lang.GrammarParser.EnumExprContext;
-import awesome.lang.GrammarParser.EnumTypeContext;
-import awesome.lang.GrammarParser.ExprContext;
-import awesome.lang.GrammarParser.FalseExprContext;
-import awesome.lang.GrammarParser.ForStatContext;
-import awesome.lang.GrammarParser.FuncExprContext;
-import awesome.lang.GrammarParser.FunctionCallContext;
-import awesome.lang.GrammarParser.FunctionContext;
-import awesome.lang.GrammarParser.IdTargetContext;
-import awesome.lang.GrammarParser.IfStatContext;
-import awesome.lang.GrammarParser.IntTypeContext;
-import awesome.lang.GrammarParser.LockTypeContext;
-import awesome.lang.GrammarParser.ModExprContext;
-import awesome.lang.GrammarParser.MultDivExprContext;
-import awesome.lang.GrammarParser.NextStatContext;
-import awesome.lang.GrammarParser.NumExprContext;
-import awesome.lang.GrammarParser.ParExprContext;
-import awesome.lang.GrammarParser.PrefixExprContext;
-import awesome.lang.GrammarParser.ReadExprContext;
-import awesome.lang.GrammarParser.ReturnStatContext;
-import awesome.lang.GrammarParser.StatContext;
-import awesome.lang.GrammarParser.SwitchStatContext;
-import awesome.lang.GrammarParser.TargetExprContext;
-import awesome.lang.GrammarParser.TrueExprContext;
-import awesome.lang.GrammarParser.TypeContext;
-import awesome.lang.GrammarParser.WhileStatContext;
-import awesome.lang.GrammarParser.WriteStatContext;
+import awesome.lang.GrammarParser.*;
 import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.model.Type;
 import awesome.lang.model.Type.ArrayType;
@@ -631,6 +590,20 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			}
 		}
 		this.types.put(ctx, Type.array(cmp));
+		return null;
+	}
+	
+	@Override
+	public Void visitArrayLengthExpr(ArrayLengthExprContext ctx) {
+		visit(ctx.type());
+		visit(ctx.expr());
+		
+		if(types.get(ctx.expr()).equals(Type.INT) == false) {
+			addError("Array length expression must be of type int in {expr}", ctx.expr());
+		}
+		
+		types.put(ctx, Type.array(types.get(ctx.type())));
+		
 		return null;
 	}
 	

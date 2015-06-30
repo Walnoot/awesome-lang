@@ -113,6 +113,8 @@ public class CompilerTest {
 		testProgram("int i=0;[int] x = [0,0,0,0]; while(i < 4) {x[i] = i; i = i + 1;} print(x[3]);", "3");
 		testProgram("[[int]] x = [[0,7], [1,2], [2,6]]; for(int i=0; i<3;i=i+1)print(x[i][1]);", "726");
 		testProgram("[[int]] x = [[0,0], [0]]; x[1] = [4,7]; print(x[1][0]); print(x[1][1]);", "47");
+		testProgram("[int] x = int[2]; [int] y = int[2]; x[1] = 3; y[1] = 2; print(y[1]);", "2");
+		testProgram("[[int]] x = [int][2]; x[1] = [3]; print(x[1][0]);", "3");
 	}
 
 	@Test

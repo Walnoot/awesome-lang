@@ -649,6 +649,9 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		prog.addInstr(OpCode.Load, MemAddr.deref(ARP), ARP);
 	}
 	
+	/**
+	 * Dynamically allocates memory and stores the address in reg
+	 */
 	private Instruction alloc(int size, Reg reg) {
 		Function func = allocFunc;
 		int localSize = func.getScope().getOffset() - 1;
@@ -657,6 +660,19 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		prog.addInstr(OpCode.Const, size, reg);
 		prog.addInstr(OpCode.Push, reg);
+		
+		functionCallRest(func, reg);
+		
+		return first;
+	}
+	
+	private Instruction alloc(Reg size, Reg reg) {
+		Function func = allocFunc;
+		int localSize = func.getScope().getOffset() - 1;
+		Instruction first = prog.addInstr(OpCode.Const, localSize, reg);
+		prog.addInstr(OpCode.Compute, Operator.Sub, Reg.SP, reg, Reg.SP);
+		
+		prog.addInstr(OpCode.Push, size);
 		
 		functionCallRest(func, reg);
 		
@@ -837,6 +853,14 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		prog.addInstr(OpCode.Compute, Operator.Sub, reg, temp, reg);
 		freeReg(temp);
 		
+		return instr;
+	}
+	
+	@Override
+	public Instruction visitArrayLengthExpr(ArrayLengthExprContext ctx) {
+		Instruction instr = visit(ctx.expr());
+		alloc(regs.get(ctx.expr()), newReg(ctx));
+		freeReg(ctx.expr());
 		return instr;
 	}
 	

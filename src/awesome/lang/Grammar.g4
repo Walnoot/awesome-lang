@@ -64,7 +64,8 @@ expr: prefixOp expr					#prefixExpr
 	| FALSE							#falseExpr
 	| functionCall					#funcExpr
 	| ID DOT ID						#enumExpr
-	| LSB ( expr (COMMA expr)*) RSB	#arrayValueExpr 
+	| LSB ( expr (COMMA expr)*) RSB	#arrayValueExpr
+	| type LSB expr RSB				#arrayLengthExpr
 	;
 
 /** Prefix operator. */
