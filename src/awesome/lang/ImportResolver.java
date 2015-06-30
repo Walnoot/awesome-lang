@@ -10,19 +10,21 @@ import java.util.ArrayList;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
 
+import awesome.lang.GrammarParser.ClassDefContext;
 import awesome.lang.GrammarParser.EnumDefContext;
 import awesome.lang.GrammarParser.FunctionContext;
 import awesome.lang.GrammarParser.ImprtContext;
 import awesome.lang.GrammarParser.ProgramContext;
 import awesome.lang.GrammarParser.StatContext;
+import awesome.lang.checking.ContextDataSet;
 
 public class ImportResolver extends GrammarBaseVisitor<Void> {
-	private ArrayList<StatContext> statements = new ArrayList<StatContext>();
-	private ArrayList<FunctionContext> functions = new ArrayList<FunctionContext>();
-	private ArrayList<EnumDefContext> enums = new ArrayList<EnumDefContext>();
 	
 	//list of files that were imported, to resolve circular dependencies
 	private ArrayList<String> imports = new ArrayList<String>();
+	
+	//Store certain contexes which are defined in different global scopes
+	private ContextDataSet contextDataSet = new ContextDataSet();
 	
 	//directory of the main program
 	private Path mainDir;
@@ -61,15 +63,16 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 		}
 		
 		for(EnumDefContext enu : ctx.enumDef()) {
-			enums.add(enu);
+			this.contextDataSet.add(enu);
 		}
-		
 		for (StatContext stat : ctx.stat()) {
-			statements.add(stat);
+			this.contextDataSet.add(stat);
 		}
-		
 		for (FunctionContext func : ctx.function()) {
-			functions.add(func);
+			this.contextDataSet.add(func);
+		}
+		for (ClassDefContext cls : ctx.classDef()) {
+			this.contextDataSet.add(cls);
 		}
 		
 		return null;
@@ -97,16 +100,8 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 		return true;
 	}
 	
-	public ArrayList<StatContext> getStatements() {
-		return statements;
-	}
-
-	public ArrayList<FunctionContext> getFunctions() {
-		return functions;
-	}
-	
-	public ArrayList<EnumDefContext> getEnums() {
-		return enums;
+	public ContextDataSet getContextDataSet() {
+		return this.contextDataSet;
 	}
 	
 	/**
