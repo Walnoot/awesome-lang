@@ -102,8 +102,6 @@ public class CompilerTest {
 				  + " case room.livingroom { print(2); }"
 				  + " case room.basement { print(3); } "
 				  + "}", "3");
-	
-		
 	}
 
 	@Test
@@ -115,6 +113,12 @@ public class CompilerTest {
 		testProgram("[[int]] x = [[0,0], [0]]; x[1] = [4,7]; print(x[1][0]); print(x[1][1]);", "47");
 		testProgram("[int] x = int[2]; [int] y = int[2]; x[1] = 3; y[1] = 2; print(y[1]);", "2");
 		testProgram("[[int]] x = [int][2]; x[1] = [3]; print(x[1][0]);", "3");
+	}
+
+	@Test
+	public void testStrings() throws IOException, InterruptedException, CompilationException {
+		testProgram("print(\"abc\");", "abc");
+		testProgram("print(\"abc\\n\");", "abc\n");
 	}
 
 	@Test

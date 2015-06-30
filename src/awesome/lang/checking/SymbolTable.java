@@ -61,6 +61,7 @@ public class SymbolTable{
 	public boolean add(DeclAssignStatContext ctx, Type type) {
 		
 		boolean success = this.getCurrentScope().add(ctx.ID().getText(), type);
+
 		if (success) {
 			this.contextmap.put(ctx,  this.getCurrentScope());
 		}
@@ -71,6 +72,7 @@ public class SymbolTable{
 	public boolean add(DeclStatContext ctx, Type type) {
 		
 		boolean success = this.getCurrentScope().add(ctx.ID().getText(), type);
+
 		if (success) {
 			this.contextmap.put(ctx,  this.getCurrentScope());
 		}
@@ -79,6 +81,7 @@ public class SymbolTable{
 	}
 	// only add type, do not compute offset!
 	public boolean add(ArrayTargetContext ctx, Type type) {
+		
 		boolean success = this.getCurrentScope().add(ctx.getText(), type, false);
 		if (success) {
 			this.contextmap.put(ctx,  this.getCurrentScope());
@@ -88,7 +91,7 @@ public class SymbolTable{
 	}
 
 	public boolean add(ArgumentContext ctx, Type type) {
-		
+
 		boolean success = this.getCurrentScope().add(ctx.ID().getText(), type);
 		if (success) {
 			this.contextmap.put(ctx,  this.getCurrentScope());
@@ -134,7 +137,6 @@ public class SymbolTable{
 			}
 			current = current.parent;
 		} while(current != null);
-		
 		return false;
 	}
 
@@ -260,6 +262,8 @@ public class SymbolTable{
 	}
 
 	public boolean isGlobal(ParserRuleContext var){
-		return contextmap.get(var).isGlobal();
+		Scope scope = contextmap.get(var);
+			
+		return scope.isGlobal();
 	}
 }

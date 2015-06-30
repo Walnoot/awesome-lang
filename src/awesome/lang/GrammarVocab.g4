@@ -34,6 +34,7 @@ ASSIGN: '=';
 
 INT: 'int';
 BOOL: 'bool';
+CHAR: 'char';
 LOCK: 'lock';
 ENUM: 'enum';
 

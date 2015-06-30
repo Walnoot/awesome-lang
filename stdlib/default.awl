@@ -42,3 +42,13 @@ print(int num): {
 	}
 	release printlock;
 }
+
+print([char] string): {
+	int i = 0;
+	[char] empty = "";
+	char null = empty[0];
+	while(string[i] != null) {
+		write string[i] stdio;
+		i = i + 1;
+	}
+}

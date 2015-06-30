@@ -4,17 +4,52 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 
-import org.antlr.v4.parse.ANTLRParser.throwsSpec_return;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
-import com.sun.xml.internal.ws.org.objectweb.asm.Opcodes;
-
-import awesome.lang.GrammarParser.*;
+import awesome.lang.GrammarParser.AcquireStatContext;
+import awesome.lang.GrammarParser.AddSubExprContext;
+import awesome.lang.GrammarParser.ArrayLengthExprContext;
+import awesome.lang.GrammarParser.ArrayTargetContext;
+import awesome.lang.GrammarParser.ArrayValueExprContext;
+import awesome.lang.GrammarParser.AssignStatContext;
+import awesome.lang.GrammarParser.BlockContext;
+import awesome.lang.GrammarParser.BoolExprContext;
+import awesome.lang.GrammarParser.CompExprContext;
+import awesome.lang.GrammarParser.DeclAssignStatContext;
+import awesome.lang.GrammarParser.DeclStatContext;
+import awesome.lang.GrammarParser.DoStatContext;
+import awesome.lang.GrammarParser.EnumExprContext;
+import awesome.lang.GrammarParser.ExprContext;
+import awesome.lang.GrammarParser.FalseExprContext;
+import awesome.lang.GrammarParser.ForStatContext;
+import awesome.lang.GrammarParser.FuncExprContext;
+import awesome.lang.GrammarParser.FuncStatContext;
+import awesome.lang.GrammarParser.FunctionCallContext;
+import awesome.lang.GrammarParser.FunctionContext;
+import awesome.lang.GrammarParser.IdTargetContext;
+import awesome.lang.GrammarParser.IfStatContext;
+import awesome.lang.GrammarParser.ModExprContext;
+import awesome.lang.GrammarParser.MultDivExprContext;
+import awesome.lang.GrammarParser.NextStatContext;
+import awesome.lang.GrammarParser.NumExprContext;
+import awesome.lang.GrammarParser.ParExprContext;
+import awesome.lang.GrammarParser.PrefixExprContext;
+import awesome.lang.GrammarParser.ReadExprContext;
+import awesome.lang.GrammarParser.ReleaseStatContext;
+import awesome.lang.GrammarParser.ReturnStatContext;
+import awesome.lang.GrammarParser.StatContext;
+import awesome.lang.GrammarParser.StringExprContext;
+import awesome.lang.GrammarParser.SwitchStatContext;
+import awesome.lang.GrammarParser.TargetContext;
+import awesome.lang.GrammarParser.TargetExprContext;
+import awesome.lang.GrammarParser.TrueExprContext;
+import awesome.lang.GrammarParser.VarStatContext;
+import awesome.lang.GrammarParser.WhileStatContext;
+import awesome.lang.GrammarParser.WriteStatContext;
 import awesome.lang.checking.FunctionTable;
 import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.checking.SymbolTable;
@@ -861,6 +896,31 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		Instruction instr = visit(ctx.expr());
 		alloc(regs.get(ctx.expr()), newReg(ctx));
 		freeReg(ctx.expr());
+		return instr;
+	}
+	
+	@Override
+	public Instruction visitStringExpr(StringExprContext ctx) {
+		String string = Util.extractString(ctx.STRING());
+		
+		Reg reg = newReg(ctx);
+		Instruction instr = alloc(string.length() + 1, reg);
+
+		Reg chrReg = newReg();
+		Reg indexReg = newReg();
+		for (int i = 0; i <= string.length(); i++) {
+			//null terminated string
+			int chr = i == string.length() ? 0 : (int) string.charAt(i);
+			
+			prog.addInstr(OpCode.Const, chr, chrReg);
+			prog.addInstr(OpCode.Const, i, indexReg);
+			prog.addInstr(OpCode.Compute, Operator.Add, indexReg, reg, indexReg);
+			
+			prog.addInstr(OpCode.Write, chrReg, MemAddr.deref(indexReg));
+		}
+		freeReg(chrReg);
+		freeReg(indexReg);
+		
 		return instr;
 	}
 	
