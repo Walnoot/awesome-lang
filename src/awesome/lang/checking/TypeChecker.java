@@ -34,6 +34,7 @@ import awesome.lang.GrammarParser.FunctionContext;
 import awesome.lang.GrammarParser.IdTargetContext;
 import awesome.lang.GrammarParser.IfStatContext;
 import awesome.lang.GrammarParser.IntTypeContext;
+import awesome.lang.GrammarParser.LockTypeContext;
 import awesome.lang.GrammarParser.ModExprContext;
 import awesome.lang.GrammarParser.MultDivExprContext;
 import awesome.lang.GrammarParser.NextStatContext;
@@ -253,6 +254,12 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	@Override
 	public Void visitBoolType(BoolTypeContext ctx) {
 		types.put(ctx, Type.BOOL);
+		return null;
+	}
+	
+	@Override
+	public Void visitLockType(LockTypeContext ctx) {
+		types.put(ctx, Type.LOCK);
 		return null;
 	}
 	

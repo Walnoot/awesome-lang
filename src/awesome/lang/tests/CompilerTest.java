@@ -127,6 +127,12 @@ public class CompilerTest {
 	}
 	
 	@Test
+	public void testThreads() throws IOException, InterruptedException, CompilationException {
+		String prog = "thread do1(): {print(12345);} thread do2(): {print(12345);} do1(); do2();";
+		testProgram(prog, "1234512345");
+	}
+	
+	@Test
 	public void testStdlib() throws IOException, InterruptedException, CompilationException {
 		testProgram("print(120034);", "120034");
 		testProgram("print(-1);", "-1");

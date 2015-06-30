@@ -27,11 +27,14 @@ RETURN: 'return';
 WRITE: 'write';
 READ: 'read';
 THREAD: 'thread';
+ACQUIRE: 'acquire';
+RELEASE: 'release';
 SEMI: ';';
 ASSIGN: '=';
 
 INT: 'int';
 BOOL: 'bool';
+LOCK: 'lock';
 ENUM: 'enum';
 
 TRUE: 'true';

@@ -17,7 +17,9 @@ stat: varSubStat SEMI										#varStat
 	| functionCall SEMI										#funcStat
 	| WRITE expr expr SEMI									#writeStat
 	| RETURN expr SEMI										#returnStat
-	| NEXT SEMI												#nextStat 
+	| NEXT SEMI												#nextStat
+	| ACQUIRE target SEMI									#acquireStat //TODO: typecheck
+	| RELEASE target SEMI									#releaseStat //TODO: typecheck
 	| block													#blockStat 
 	;
 
@@ -43,6 +45,7 @@ functionCall: ID LB (expr (COMMA expr)*)? RB;
 type: INT						#intType
 	| BOOL						#boolType
 	| LSB type /*COLON NUM*/ RSB#arrayType
+	| LOCK						#lockType
 	| ID						#enumType
 	;
 

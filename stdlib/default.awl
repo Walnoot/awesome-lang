@@ -1,22 +1,21 @@
 //this program is imported with every program
 
 int allocCounter = 0;
+lock allocLock;
 int alloc(int size): {
+	acquire allocLock;
 	int ret = allocCounter;
 	allocCounter = allocCounter + size;
+	release allocLock;
 	return ret;
 }
 
-thread function(): {
-	print(4);
-	print(4);
-	print(4);
-	print(4);
-}
+lock printlock;
 
 //converts num to decimal and writes it to stdout
 int stdio = 16777216;
 print(int num): {
+	acquire printlock;
 	[int:12] chars;
 	int i = 0;
 	bool neg = num < 0;
@@ -41,5 +40,5 @@ print(int num): {
 	for(int j = i-1; j >= 0; j = j-1){
 		write (chars[j] + 48) stdio;
 	}
+	release printlock;
 }
-

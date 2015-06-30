@@ -4,47 +4,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
-import awesome.lang.GrammarParser.AddSubExprContext;
-import awesome.lang.GrammarParser.ArrayTargetContext;
-import awesome.lang.GrammarParser.AssignStatContext;
-import awesome.lang.GrammarParser.BlockContext;
-import awesome.lang.GrammarParser.BoolExprContext;
-import awesome.lang.GrammarParser.CompExprContext;
-import awesome.lang.GrammarParser.DeclAssignStatContext;
-import awesome.lang.GrammarParser.DeclStatContext;
-import awesome.lang.GrammarParser.DoStatContext;
-import awesome.lang.GrammarParser.EnumExprContext;
-import awesome.lang.GrammarParser.ExprContext;
-import awesome.lang.GrammarParser.FalseExprContext;
-import awesome.lang.GrammarParser.ForStatContext;
-import awesome.lang.GrammarParser.FuncExprContext;
-import awesome.lang.GrammarParser.FuncStatContext;
-import awesome.lang.GrammarParser.FunctionCallContext;
-import awesome.lang.GrammarParser.FunctionContext;
-import awesome.lang.GrammarParser.IdTargetContext;
-import awesome.lang.GrammarParser.IfStatContext;
-import awesome.lang.GrammarParser.ModExprContext;
-import awesome.lang.GrammarParser.MultDivExprContext;
-import awesome.lang.GrammarParser.NextStatContext;
-import awesome.lang.GrammarParser.NumExprContext;
-import awesome.lang.GrammarParser.ParExprContext;
-import awesome.lang.GrammarParser.PrefixExprContext;
-import awesome.lang.GrammarParser.ReadExprContext;
-import awesome.lang.GrammarParser.ReturnStatContext;
-import awesome.lang.GrammarParser.StatContext;
-import awesome.lang.GrammarParser.SwitchStatContext;
-import awesome.lang.GrammarParser.TargetContext;
-import awesome.lang.GrammarParser.TargetExprContext;
-import awesome.lang.GrammarParser.TrueExprContext;
-import awesome.lang.GrammarParser.VarStatContext;
-import awesome.lang.GrammarParser.WhileStatContext;
-import awesome.lang.GrammarParser.WriteStatContext;
+import com.sun.xml.internal.ws.org.objectweb.asm.Opcodes;
+
+import awesome.lang.GrammarParser.*;
 import awesome.lang.checking.FunctionTable;
 import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.checking.SymbolTable;
@@ -85,6 +54,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		freeRegs = new ArrayList<Reg>(Arrays.asList(REGISTERS));
 		regs = new ParseTreeProperty<Reg>();
 		functionLabels = new HashMap<Function, Label>();
+		threadIdMap = new HashMap<>();
 		
 		staticBlockStart = 0xFFFFFF - symboltable.getCurrentScope().getOffset();
 		
@@ -125,7 +95,14 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			}
 		}
 		
+		prog.setNumSprockells(threads.size() + 1);
+		
 		Reg reg = newReg();
+//		prog.addInstr(OpCode.Const, 1, reg);
+//		for(Function thread : threads){
+//			prog.addInstr(OpCode.Write, reg, MemAddr.direct(threadIdMap.get(thread)));
+//		}
+		
 		for(int i = 0; i <= threads.size(); i++){
 			prog.addInstr(OpCode.Const, i, reg);
 			prog.addInstr(OpCode.Compute, Operator.Equal, reg, Reg.SPID, reg);
@@ -367,7 +344,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	public Instruction visitFuncStat(FuncStatContext ctx) {
 		Instruction instruction = visit(ctx.functionCall());
 		freeReg(ctx.functionCall());
-		
+
 		return instruction;
 	}
 	
@@ -411,6 +388,30 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		freeReg(ctx.expr(1));
 		
 		return i;
+	}
+	
+	@Override
+	public Instruction visitAcquireStat(AcquireStatContext ctx) {
+		Instruction instruction = visit(ctx.target());
+		Label label = new Label("lock-acquire");
+		instruction.setLabel(label );
+		Reg reg = regs.get(ctx.target());
+		prog.addInstr(OpCode.TestAndSet, MemAddr.deref(reg));
+		prog.addInstr(OpCode.Receive, reg);
+		prog.addInstr(OpCode.Branch, reg, Target.rel(2));
+		prog.addInstr(OpCode.Jump, Target.abs(label));
+		
+		freeReg(ctx.target());
+		return instruction;
+	}
+	
+	@Override
+	public Instruction visitReleaseStat(ReleaseStatContext ctx) {
+		Instruction instruction = visit(ctx.target());
+		prog.addInstr(OpCode.Write, Reg.Zero, MemAddr.deref(regs.get(ctx.target())));
+		
+		freeReg(ctx.target());
+		return instruction;
 	}
 	
 	/**
@@ -479,25 +480,56 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	public Instruction visitFunction(FunctionContext ctx) {
 		Function function = funcTable.getFunction(ctx);
 		Label label = functionLabels.get(function);
-		Instruction first;
+		Instruction first = null;
+		
+		if(function.isThreadFunction()) {
+			Label tLabel = new Label("thread-wait");
+			first = prog.addInstr(tLabel, OpCode.Read, MemAddr.direct(threadIdMap.get(function)));
+			Reg reg = newReg();
+			prog.addInstr(OpCode.Receive, reg);
+			prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);
+			prog.addInstr(OpCode.Branch, reg, Target.abs(tLabel));
+			
+			freeReg(reg);
+		}
 		
 		if (ctx.stat() != null) {
-			first = visit(ctx.stat());
-			if(function.getFunctionType().getReturnType() == Type.VOID){
+			Instruction i = visit(ctx.stat());
+			if(first == null) first = i;
+			if(function.getFunctionType().getReturnType() == Type.VOID && !function.isThreadFunction()){
 				makeReturn(Reg.Zero);
 			}
 		} else {
-			first = visit(ctx.expr());
+			Instruction i = visit(ctx.expr());
+			if(first == null) first = i;
 			Reg retReg = this.regs.get(ctx.expr());
 			makeReturn(retReg);
 			freeReg(retReg);
 		}
 		first.setLabel(label);
+		
+		if(function.isThreadFunction()){
+			prog.addInstr(OpCode.EndProg);
+		}
+		
 		return first;
 	}
 	
 	@Override()
 	public Instruction visitFunctionCall(FunctionCallContext ctx) {
+		Function func = funcTable.getFunction(ctx);
+		
+		if(func.isThreadFunction()) {
+			Reg reg = newReg(ctx);
+			Instruction instr = prog.addInstr(OpCode.Const, 1, reg);
+			prog.addInstr(OpCode.Write, reg, MemAddr.direct(threadIdMap.get(func)));
+			return instr;
+		} else {
+			return callFunction(func, ctx);
+		}
+	}
+
+	private Instruction callFunction(Function func, FunctionCallContext ctx) {
 		//AR:
 		//local var n
 		//local var 0
@@ -508,10 +540,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		//return value
 		//RegA .. RegB
 
-		Function func = funcTable.getFunction(ctx);
-		
-		Instruction first = null;
-		
 		//local vars + params + ARP + ret value + ret addr
 		//register saves dont count
 		int stackSize = func.getScope().getOffset() + 3;
@@ -520,25 +548,23 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		//reserve space for local variables
 		int localSize = func.getScope().getOffset() - args.size();
-		for(int i = 0; i < localSize; i++) {
-			Instruction instr = prog.addInstr(OpCode.Push, Reg.Zero);
-			if(first == null) first = instr;
-		}
+		Reg stackReg = newReg();
+		Instruction first = prog.addInstr(OpCode.Const, localSize, stackReg);
+		prog.addInstr(OpCode.Compute, Operator.Sub, Reg.SP, stackReg, Reg.SP);
+		freeReg(stackReg);
 		
 		//parameters
 		for(int i = args.size() - 1; i >= 0; i--) {
 			ExprContext arg = args.get(i);
-			Instruction instr = visit(arg);
+			visit(arg);
 			
 			Reg reg = regs.get(arg);
 			prog.addInstr(OpCode.Push, reg);
-			if(first == null) first = instr;
 			freeReg(reg);
 		}
 		
 		//caller's ARP
-		Instruction instr = prog.addInstr(OpCode.Push, ARP);
-		if(first == null) first = instr;
+		prog.addInstr(OpCode.Push, ARP);
 		
 		//write value of stack-pointer to new ARP
 		//uses an add for lack reg-to-reg instruction
