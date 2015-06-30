@@ -31,7 +31,7 @@ target: ID					#idTarget
 	  | target LSB expr RSB	#arrayTarget
 	  ;
 
-
+// method definition parameter
 argument: type ID;
 
 enumDef: ENUM ID LCB (ID (COMMA ID)*)? RCB;
@@ -42,25 +42,26 @@ functionCall: ID LB (expr (COMMA expr)*)? RB;
 
 type: INT						#intType
 	| BOOL						#boolType
-	| LSB type COLON NUM RSB	#arrayType
+	| LSB type /*COLON NUM*/ RSB#arrayType
 	| ID						#enumType
 	;
 
 /** Expression. */
-expr: prefixOp expr			#prefixExpr
-	| expr addSubOp expr	#addSubExpr
-	| expr MOD expr			#modExpr
-	| expr multDivOp expr	#multDivExpr
-	| expr compOp expr		#compExpr
-	| expr boolOp expr		#boolExpr
-	| LB expr RB			#parExpr
-	| target				#targetExpr
-	| READ expr				#readExpr
-	| NUM					#numExpr
-	| TRUE					#trueExpr
-	| FALSE					#falseExpr
-	| functionCall			#funcExpr
-	| ID DOT ID				#enumExpr
+expr: prefixOp expr					#prefixExpr
+	| expr addSubOp expr			#addSubExpr
+	| expr MOD expr					#modExpr
+	| expr multDivOp expr			#multDivExpr
+	| expr compOp expr				#compExpr
+	| expr boolOp expr				#boolExpr
+	| LB expr RB					#parExpr
+	| target						#targetExpr
+	| READ expr						#readExpr
+	| NUM							#numExpr
+	| TRUE							#trueExpr
+	| FALSE							#falseExpr
+	| functionCall					#funcExpr
+	| ID DOT ID						#enumExpr
+	| LSB ( expr (COMMA expr)*) RSB	#arrayValueExpr 
 	;
 
 /** Prefix operator. */

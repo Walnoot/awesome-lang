@@ -12,6 +12,7 @@ import awesome.lang.GrammarParser.AddSubExprContext;
 import awesome.lang.GrammarParser.ArgumentContext;
 import awesome.lang.GrammarParser.ArrayTargetContext;
 import awesome.lang.GrammarParser.ArrayTypeContext;
+import awesome.lang.GrammarParser.ArrayValueExprContext;
 import awesome.lang.GrammarParser.AssignStatContext;
 import awesome.lang.GrammarParser.BlockContext;
 import awesome.lang.GrammarParser.BlockStatContext;
@@ -271,7 +272,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	public Void visitArrayType(ArrayTypeContext ctx) {
 		visit(ctx.type());
 		Type type = types.get(ctx.type());
-		int size = Integer.parseInt(ctx.NUM().getText());
+		int size = 1;//Integer.parseInt(ctx.NUM().getText());
 		
 		types.put(ctx, Type.array(type, size));
 		return null;
@@ -605,6 +606,21 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			this.variables.assign(ctx);
 		}
 		this.types.put(ctx, aType);
+		return null;
+	}
+	
+	@Override
+	public Void visitArrayValueExpr(ArrayValueExprContext ctx) {
+		visit(ctx.expr(0));
+		Type cmp = this.types.get(ctx.expr(0));
+		for (int i = 1; i < ctx.expr().size(); i++) {
+			visit(ctx.expr(i));
+			Type type = this.types.get(ctx.expr(i));
+			if (cmp.equals(type) == false) {
+				this.addError("Invalid value of type "+type+" in expression: {expr}", ctx);
+			}
+		}
+		this.types.put(ctx, Type.array(cmp, 1));
 		return null;
 	}
 	
