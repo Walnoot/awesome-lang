@@ -11,6 +11,7 @@ public class Type {
 	public static final Type VOID = new Type(1, "void");
 	public static final Type LOCK = new Type(1, "lock");
 	private static HashMap<String, EnumType> enums = new HashMap<String, EnumType>();
+	private static HashMap<String, ClassType> classes = new HashMap<String, ClassType>();
 	
 	private int size;
 	private String name;
@@ -32,7 +33,7 @@ public class Type {
 	public String toString() {
 		return name;
 	}
-	
+
 	public static boolean enumExists(String name) {
 		return Type.enums.containsKey(name);
 	}
@@ -44,6 +45,20 @@ public class Type {
 		if (Type.enumExists(name) == false)
 			return null;
 		return Type.enums.get(name);
+	}
+	
+
+	public static boolean classExists(String name) {
+		return Type.classes.containsKey(name);
+	}
+	
+	/**
+	 * If not exists, returns null. 
+	 */
+	public static ClassType getClass(String name) {
+		if (Type.classExists(name) == false)
+			return null;
+		return Type.classes.get(name);
 	}
 	
 	/**
@@ -69,6 +84,39 @@ public class Type {
 		EnumType newEnum = new EnumType(name, values);
 		Type.enums.put(name, newEnum);
 		return newEnum;
+	}
+	
+	/**
+	 * Returns the type of an class, with given name. Returns null if the name is already taken
+	 */
+	public static EnumType newEnum(String name) {
+		if (Type.classes.containsKey(name))
+			return null;
+		
+		EnumType newEnum = new EnumType(name, null);
+		Type.enums.put(name, newEnum);
+		return newEnum;
+	}
+	
+	public static class ClassType extends Type {
+		
+		private Scope scope = null;
+
+		private ClassType(String name, Scope scope) {
+			super(1, name);
+			this.scope = scope;
+		}
+		
+		public void setScope(Scope scope) {
+			if (this.scope != null)
+				throw new IllegalStateException("Cannot overwrite an already set scope.");
+			this.scope = scope;
+		}
+		
+		public Scope getScope() {
+			return this.scope;
+		}
+		
 	}
 	
 	public static class EnumType extends Type {
