@@ -84,20 +84,14 @@ public class SymbolTable{
 	public boolean add(ArrayTargetContext ctx, Type type) {
 		
 		boolean success = this.getCurrentScope().add(ctx.getText(), type, false);
-		if (success) {
-			this.contextmap.put(ctx,  this.getCurrentScope());
-		}
-		
+		this.contextmap.put(ctx,  this.getCurrentScope());
 		return success;
 	}
 	// only add type, do not compute offset!
 	public boolean add(ClassTargetContext ctx, Type type, Scope scope) {
 		
 		boolean success = scope.add(ctx.getText(), type, false);
-		if (success) {
-			this.contextmap.put(ctx,  scope);
-		}
-		
+		this.contextmap.put(ctx,  scope);
 		return success;
 	}
 
