@@ -23,14 +23,14 @@ stat: varSubStat SEMI										#varStat
 	| block													#blockStat 
 	;
 
-//varSubStat : declStat | assignStat | declAssignStat;
-//declStat: type ID;
-//assignStat: target ASSIGN expr;
-//declAssignStat: type ID ASSIGN expr;
-varSubStat: type ID				#declStat
-	   | target ASSIGN expr		#assignStat
-	   | type ID ASSIGN expr	#declAssignStat
-	   ;
+varSubStat : declStat | assignStat | declAssignStat;
+declStat: type ID;
+assignStat: target ASSIGN expr;
+declAssignStat: type ID ASSIGN expr;
+//varSubStat: type ID				#declStat
+//	   | target ASSIGN expr		#assignStat
+//	   | type ID ASSIGN expr	#declAssignStat
+//	   ;
 
 //target of assignment or expr
 target: ID					#idTarget
@@ -42,7 +42,7 @@ argument: type ID;
 
 enumDef: ENUM ID LCB (ID (COMMA ID)*)? RCB;
 
-classDef: CLASS ID LCB /*declStat* */ RCB ;
+classDef: CLASS ID LCB declStat* RCB ;
 
 function: (THREAD | type?) ID LB (argument (COMMA argument)*)? RB (COLON stat | ARROW expr SEMI);
 

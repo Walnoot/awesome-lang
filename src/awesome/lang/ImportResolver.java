@@ -16,7 +16,7 @@ import awesome.lang.GrammarParser.FunctionContext;
 import awesome.lang.GrammarParser.ImprtContext;
 import awesome.lang.GrammarParser.ProgramContext;
 import awesome.lang.GrammarParser.StatContext;
-import awesome.lang.checking.ContextDataSet;
+import awesome.lang.checking.CompilationUnit;
 
 public class ImportResolver extends GrammarBaseVisitor<Void> {
 	
@@ -24,7 +24,7 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 	private ArrayList<String> imports = new ArrayList<String>();
 	
 	//Store certain contexes which are defined in different global scopes
-	private ContextDataSet contextDataSet = new ContextDataSet();
+	private CompilationUnit contextDataSet = new CompilationUnit();
 	
 	//directory of the main program
 	private Path mainDir;
@@ -100,7 +100,7 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 		return true;
 	}
 	
-	public ContextDataSet getContextDataSet() {
+	public CompilationUnit getContextDataSet() {
 		return this.contextDataSet;
 	}
 	

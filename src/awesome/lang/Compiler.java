@@ -3,6 +3,7 @@ package awesome.lang;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import awesome.lang.checking.CompilationUnit;
 import awesome.lang.checking.TypeChecker;
 import awesome.lang.model.Program;
 
@@ -13,17 +14,19 @@ public class Compiler {
 	public Program compile(String program) throws CompilationException {
 //		ParseTree tree = Util.parseProgram(ips);
 		ImportResolver resolver = new ImportResolver(program);
+		CompilationUnit cUnit	= resolver.getContextDataSet();
 		
 		// walk through
 		TypeChecker checker = new TypeChecker();
-		checker.checkProgram(resolver.getFunctions(), resolver.getStatements(), resolver.getEnums());
+		checker.checkProgram(cUnit);
 		
 		if (checker.getErrors().size() > 0) {
 			throw new CompilationException("Error(s) during type checking", checker.getErrors());
 		}
 		
+		
 		Generator generator = new Generator(checker.getSymbolTable(), checker.getFunctionTable());
-		return generator.genProgram(resolver.getFunctions(), resolver.getStatements());
+		return generator.genProgram(cUnit.getFunclist(), cUnit.getStatlist());
 	}
 	
 	public class CompilationException extends Exception {

@@ -20,6 +20,8 @@ import awesome.lang.GrammarParser.BlockContext;
 import awesome.lang.GrammarParser.BlockStatContext;
 import awesome.lang.GrammarParser.BoolExprContext;
 import awesome.lang.GrammarParser.BoolTypeContext;
+import awesome.lang.GrammarParser.CharTypeContext;
+import awesome.lang.GrammarParser.ClassDefContext;
 import awesome.lang.GrammarParser.CompExprContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
 import awesome.lang.GrammarParser.DeclStatContext;
@@ -47,6 +49,7 @@ import awesome.lang.GrammarParser.ReadExprContext;
 import awesome.lang.GrammarParser.ReleaseStatContext;
 import awesome.lang.GrammarParser.ReturnStatContext;
 import awesome.lang.GrammarParser.StatContext;
+import awesome.lang.GrammarParser.StringExprContext;
 import awesome.lang.GrammarParser.SwitchStatContext;
 import awesome.lang.GrammarParser.TargetContext;
 import awesome.lang.GrammarParser.TargetExprContext;
@@ -88,21 +91,26 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return functions;
 	}
 	
-	public void checkProgram(ArrayList<FunctionContext> functions, ArrayList<StatContext> statements, ArrayList<EnumDefContext> enums) {
+	// execute source elements in the order: 
+	public void checkProgram(CompilationUnit cUnit) {
 		// enum definitions
-		for(EnumDefContext child : enums) {
+		for(EnumDefContext child : cUnit.getEnumlist()) {
 			visit(child);
 		}
-		// function definitions
-		for(FunctionContext child : functions) {
+		// class definitions 
+		for(ClassDefContext child : cUnit.getClasslist()) {
 			visit(child);
 		}
-		
-		for(StatContext stat : statements){
+		// function definitions (visitFunction does not check its body, that task is left for the end of this function(checkProgram)
+		for(FunctionContext child : cUnit.getFunclist()) {
+			visit(child);
+		}
+		// execute all bodies
+		for(StatContext stat : cUnit.getStatlist()){
 			visit(stat);
 		}
 		
-		for(FunctionContext child : functions) {
+		for(FunctionContext child : cUnit.getFunclist()) {
 			// open scope (add local variables)
 			this.variables.openScope(((FunctionContext) child), true);
 			for(ArgumentContext arg : ((FunctionContext) child).argument()) {
@@ -142,7 +150,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			throw new UnsupportedOperationException("TargetContext has a new subclass, this resulted in failure in method visitAcquireStat, please check!");
 		}
 		
-		if (this.variables.contains(idHolder) == false) {
+		if (this.variables.contains(((IdTargetContext) idHolder).ID().getText()) == false) {
 			this.addError("Lock with ID \""+((IdTargetContext) idHolder).ID().getText()+"\" used, but not defined anywhere, in expression: {expr}", ctx);
 		}
 		
@@ -164,7 +172,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			throw new UnsupportedOperationException("TargetContext has a new subclass, this resulted in failure in method visitAcquireStat, please check!");
 		}
 		
-		if (this.variables.contains(idHolder) == false) {
+		if (this.variables.contains(((IdTargetContext) idHolder).ID().getText()) == false) {
 			this.addError("Lock with ID \""+((IdTargetContext) idHolder).ID().getText()+"\" used, but not defined anywhere, in expression: {expr}", ctx);
 		}
 		
