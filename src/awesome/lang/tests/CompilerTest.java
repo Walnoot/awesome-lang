@@ -134,6 +134,11 @@ public class CompilerTest {
 	}
 	
 	@Test
+	public void testObjects() throws IOException, InterruptedException, CompilationException {
+		testProgram("class Int {int x;} Int obj = new Int; obj.x = 4; print(obj.x);", "4");
+	}
+	
+	@Test
 	public void testThreads() throws IOException, InterruptedException, CompilationException {
 		String prog = "thread do1(): {print(12345);} thread do2(): {print(12345);} do1(); do2();";
 		testProgram(prog, "1234512345");

@@ -43,7 +43,7 @@ argument: type ID;
 
 enumDef: ENUM ID LCB (ID (COMMA ID)*)? RCB;
 
-classDef: CLASS ID LCB declStat* RCB ;
+classDef: CLASS ID LCB (declStat SEMI)* RCB ;
 
 function: (THREAD | type?) ID LB (argument (COMMA argument)*)? RB (COLON stat | ARROW expr SEMI);
 

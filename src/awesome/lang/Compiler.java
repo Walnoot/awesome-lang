@@ -22,8 +22,7 @@ public class Compiler {
 	}
 
 	private Program build(ImportResolver resolver) throws CompilationException {
-//		ParseTree tree = Util.parseProgram(ips);
-		CompilationUnit cUnit	= resolver.getContextDataSet();
+		CompilationUnit cUnit = resolver.getContextDataSet();
 		
 		TypeChecker checker = new TypeChecker();
 		checker.checkProgram(cUnit);

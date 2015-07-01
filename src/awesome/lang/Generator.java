@@ -10,46 +10,9 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
-import awesome.lang.GrammarParser.AcquireStatContext;
-import awesome.lang.GrammarParser.AddSubExprContext;
-import awesome.lang.GrammarParser.ArrayLengthExprContext;
-import awesome.lang.GrammarParser.ArrayTargetContext;
-import awesome.lang.GrammarParser.ArrayValueExprContext;
-import awesome.lang.GrammarParser.AssignStatContext;
-import awesome.lang.GrammarParser.BlockContext;
-import awesome.lang.GrammarParser.BoolExprContext;
-import awesome.lang.GrammarParser.CompExprContext;
-import awesome.lang.GrammarParser.DeclAssignStatContext;
-import awesome.lang.GrammarParser.DeclStatContext;
-import awesome.lang.GrammarParser.DoStatContext;
-import awesome.lang.GrammarParser.EnumExprContext;
-import awesome.lang.GrammarParser.ExprContext;
-import awesome.lang.GrammarParser.FalseExprContext;
-import awesome.lang.GrammarParser.ForStatContext;
-import awesome.lang.GrammarParser.FuncExprContext;
-import awesome.lang.GrammarParser.FuncStatContext;
-import awesome.lang.GrammarParser.FunctionCallContext;
-import awesome.lang.GrammarParser.FunctionContext;
-import awesome.lang.GrammarParser.IdTargetContext;
-import awesome.lang.GrammarParser.IfStatContext;
-import awesome.lang.GrammarParser.ModExprContext;
-import awesome.lang.GrammarParser.MultDivExprContext;
-import awesome.lang.GrammarParser.NextStatContext;
-import awesome.lang.GrammarParser.NumExprContext;
-import awesome.lang.GrammarParser.ParExprContext;
-import awesome.lang.GrammarParser.PrefixExprContext;
-import awesome.lang.GrammarParser.ReadExprContext;
-import awesome.lang.GrammarParser.ReleaseStatContext;
-import awesome.lang.GrammarParser.ReturnStatContext;
-import awesome.lang.GrammarParser.StatContext;
-import awesome.lang.GrammarParser.StringExprContext;
-import awesome.lang.GrammarParser.SwitchStatContext;
-import awesome.lang.GrammarParser.TargetContext;
-import awesome.lang.GrammarParser.TargetExprContext;
-import awesome.lang.GrammarParser.TrueExprContext;
-import awesome.lang.GrammarParser.VarStatContext;
-import awesome.lang.GrammarParser.WhileStatContext;
-import awesome.lang.GrammarParser.WriteStatContext;
+import com.sun.org.apache.xalan.internal.xsltc.compiler.sym;
+
+import awesome.lang.GrammarParser.*;
 import awesome.lang.checking.FunctionTable;
 import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.checking.SymbolTable;
@@ -493,6 +456,30 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		return instr;
 	}
 	
+	@Override
+	public Instruction visitClassTarget(ClassTargetContext ctx) {
+		//first find base address of object
+		Instruction instr = visit(ctx.target());
+		Reg reg = regs.get(ctx.target());
+		regs.put(ctx, reg);
+		
+		if(isGlobal(ctx.target())) {
+			prog.addInstr(OpCode.Read, MemAddr.deref(reg));
+			prog.addInstr(OpCode.Receive, reg);
+		} else {
+			prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
+		}
+		
+		//then add the offset of the specified field
+		Reg temp = newReg();
+		int offset = this.symboltable.getClassScope(ctx).getOffset(ctx.ID().getText());
+		prog.addInstr(OpCode.Const, offset, temp);
+		prog.addInstr(OpCode.Compute, Operator.Add, reg, temp, reg);
+		freeReg(temp);
+		
+		return instr;
+	}
+	
 	/**
 	 * @return - Whether the variabel referenced by ctx is stored in shared memory or the stack.
 	 */
@@ -500,6 +487,8 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		if(ctx instanceof IdTargetContext){
 			return symboltable.isGlobal(ctx);
 		} else if(ctx instanceof ArrayTargetContext) {
+			return true;
+		} else if(ctx instanceof ClassTargetContext) {
 			return true;
 		}
 		
@@ -878,6 +867,14 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		}
 		freeReg(chrReg);
 		freeReg(indexReg);
+		
+		return instr;
+	}
+	
+	@Override
+	public Instruction visitNewClassExpr(NewClassExprContext ctx) {
+		int size = Type.getClass(ctx.ID().getText()).getScope().getOffset();
+		Instruction instr = alloc(size, newReg(ctx));
 		
 		return instr;
 	}

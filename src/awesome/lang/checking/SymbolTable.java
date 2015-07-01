@@ -120,8 +120,12 @@ public class SymbolTable{
 	public boolean assign(AssignStatContext ctx) {
 		
 		TargetContext target = ctx.target();
-		while(target instanceof ArrayTargetContext) {
-			target = ((ArrayTargetContext) target).target();
+		while(!(target instanceof IdTargetContext)) {
+			if(target instanceof ArrayTargetContext) {
+				target = ((ArrayTargetContext) target).target();
+			} else if(target instanceof ClassTargetContext) {
+				target = ((ClassTargetContext) target).target();
+			}
 		}
 		
 		return assign(ctx, ((IdTargetContext) target).ID().getText());
