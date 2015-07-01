@@ -11,7 +11,7 @@ import awesome.lang.model.Program;
 import awesome.lang.model.Type;
 
 /**
- * Combines Typechecker and Generator
+ * Combines ImportResolver, Typechecker and Generator
  */
 public class Compiler {
 	public Program compile(String program) throws CompilationException {
@@ -35,7 +35,7 @@ public class Compiler {
 		
 		
 		Generator generator = new Generator(checker.getSymbolTable(), checker.getFunctionTable());
-		return generator.genProgram(cUnit.getFunclist(), cUnit.getStatlist());
+		return generator.genProgram(cUnit);
 	}
 	
 	public class CompilationException extends Exception {

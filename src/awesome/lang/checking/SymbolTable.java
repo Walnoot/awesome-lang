@@ -304,4 +304,8 @@ public class SymbolTable{
 	public Scope getClassScope(ClassTargetContext ctx) {
 		return this.contextmap.get(ctx);
 	}
+	
+	public Scope getScope(IdTargetContext ctx) {
+		return this.contextmap.get(ctx);
+	}
 }

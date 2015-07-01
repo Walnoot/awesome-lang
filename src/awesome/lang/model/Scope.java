@@ -6,6 +6,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 
+import awesome.lang.GrammarParser.ClassDefContext;
+
 public class Scope {
 
 	public  final ParserRuleContext identifier;
@@ -85,5 +87,9 @@ public class Scope {
 	
 	public boolean isGlobal(){
 		return parent == null;
+	}
+	
+	public boolean isClass(){
+		return identifier instanceof ClassDefContext;
 	}
 }

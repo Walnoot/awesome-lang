@@ -10,9 +10,11 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
-import com.sun.org.apache.xalan.internal.xsltc.compiler.sym;
-
+import awesome.lang.GrammarParser.ExprContext;
+import awesome.lang.GrammarParser.FunctionContext;
+import awesome.lang.GrammarParser.IdTargetContext;
 import awesome.lang.GrammarParser.*;
+import awesome.lang.checking.CompilationUnit;
 import awesome.lang.checking.FunctionTable;
 import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.checking.SymbolTable;
@@ -55,7 +57,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		this.funcTable = funcTable;
 	}
 	
-	public Program genProgram(ArrayList<FunctionContext> functions, ArrayList<StatContext> statements) {
+	public Program genProgram(CompilationUnit unit) {
 		prog = new Program(1);
 		freeRegs = new ArrayList<Reg>(Arrays.asList(REGISTERS));
 		regs = new ParseTreeProperty<Reg>();
@@ -64,7 +66,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		staticBlockStart = 0xFFFFFF - symboltable.getCurrentScope().getOffset();
 		
-		visitProgram(functions, statements);
+		visitProgram(unit);
 		
 		if(freeRegs.size() != REGISTERS.length) {
 			//some function did not free a register it used, but no errors were encountered.
@@ -74,7 +76,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		return prog;
 	}
 	
-	public void visitProgram(ArrayList<FunctionContext> functions, ArrayList<StatContext> statements) {
+	public void visitProgram(CompilationUnit unit) {
 		Label start = new Label("program-begin");
 		
 		//set initial ARP
@@ -84,7 +86,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		int threadCounter = 1;
 		
 		//prepare function labels
-		for(FunctionContext f : functions){
+		for(FunctionContext f : unit.getFunclist()){
 			Function func = funcTable.getFunction(f);
 			Label label = new Label("func " + func.getName());
 			
@@ -121,13 +123,13 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		}
 		freeReg(reg);
 		
-		for(FunctionContext func : functions){
+		for(FunctionContext func : unit.getFunclist()){
 			visit(func);
 		}
 		
 		prog.addInstr(start, OpCode.Nop);
 		
-		for(StatContext stat : statements){
+		for(StatContext stat : unit.getStatlist()){
 			visit(stat);
 		}
 		
@@ -431,9 +433,27 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	public Instruction visitIdTarget(IdTargetContext ctx) {
 		Reg reg = newReg(ctx);
 		
-		Instruction i = genAddr(symboltable.isGlobal(ctx), symboltable.getOffset(ctx), reg);
-		i.setComment("var: " + ctx.getText());
-		return i;
+		if(symboltable.getScope(ctx).isClass()){
+//			System.out.println(ctx.getText());
+//			System.out.println(symboltable.getOffset(ctx));
+//			System.out.println(isGlobal(ctx));
+			
+			Instruction i = genAddr(false, 0, reg);
+			prog.addInstr(OpCode.Load, MemAddr.deref(reg), reg);
+			
+			Reg temp = newReg();
+			prog.addInstr(OpCode.Const, symboltable.getOffset(ctx), temp);
+			prog.addInstr(OpCode.Compute, Operator.Add, temp, reg, reg);
+			freeReg(temp);
+			
+			
+			
+			return i;
+		} else {
+			Instruction i = genAddr(symboltable.isGlobal(ctx), symboltable.getOffset(ctx), reg);
+			i.setComment("var: " + ctx.getText());
+			return i;
+		}
 	}
 	
 	@Override
@@ -485,7 +505,8 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	 */
 	private boolean isGlobal(TargetContext ctx) {
 		if(ctx instanceof IdTargetContext){
-			return symboltable.isGlobal(ctx);
+			if(symboltable.getScope((IdTargetContext) ctx).isClass()) return true;//field are allocated on shared mem
+			else return symboltable.isGlobal(ctx);
 		} else if(ctx instanceof ArrayTargetContext) {
 			return true;
 		} else if(ctx instanceof ClassTargetContext) {
@@ -546,7 +567,22 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			prog.addInstr(OpCode.Write, reg, MemAddr.direct(threadAddressMap.get(func)));
 			return instr;
 		} else {
-			return callFunction(func, newReg(ctx), ctx.expr());
+			List<ExprContext> args = ctx.expr();
+			if(func.isMethod()){
+				//the last expr of a method call is the object the method is applied to
+				//and that object is the first param of the function
+				//so we need to move the args around
+				
+				int size = ctx.expr().size();
+				args = new ArrayList<>(size);
+				
+				args.add(ctx.expr(size - 1));
+				for(int i = 0; i < size-1; i++){
+					args.add(ctx.expr(i));
+				}
+			}
+			
+			return callFunction(func, newReg(ctx), args);
 		}
 	}
 

@@ -144,7 +144,7 @@ public class CompilerTest {
 				+ " bool setV1(int y) : { v1 = y; return true; }"
 				+ "}"
 				+ "Pair couple = new Pair;"
-				+ "setV1(5) on couple;"
+				+ "setV1(4) on couple;"
 				+ "print(couple.v1);", "4");
 		testProgram("class Test {"
 					+ "	int a;"
