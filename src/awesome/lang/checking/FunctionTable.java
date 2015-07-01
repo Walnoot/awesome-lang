@@ -48,11 +48,11 @@ public class FunctionTable {
 		return this.types.get(name);
 	}
 	
-	public FunctionType getFunctionTypeByArgs(String name, Type[] arguments) {
+	public FunctionType getFunctionTypeByArgs(String name, Type[] arguments, boolean isMethod) {
 		List<FunctionType> types = this.getTypes(name);
 		if(types != null) {
 			for (FunctionType tCheck : types) {
-				if (Arrays.equals(tCheck.getArguments(), arguments))
+				if (Arrays.equals(tCheck.getArguments(), arguments) && tCheck.isMethod() == isMethod)
 					return tCheck;
 			}
 		}
@@ -103,14 +103,14 @@ public class FunctionTable {
 	}
 
 	public boolean containsWithArgs(String name, FunctionType type) {
-		return this.containsWithArgs(name, type.getArguments());
+		return this.containsWithArgs(name, type.getArguments(), type.isMethod());
 	}
 	
-	public boolean containsWithArgs(String name, Type[] arguments) {
+	public boolean containsWithArgs(String name, Type[] arguments, boolean isMethod) {
 		List<FunctionType> types = this.getTypes(name);
 		if(types != null) {
 			for (FunctionType tCheck : types) {
-				if (Arrays.equals(tCheck.getArguments(), arguments))
+				if (Arrays.equals(tCheck.getArguments(), arguments) && tCheck.isMethod() == isMethod)
 					return true;
 			}
 		}
@@ -153,6 +153,10 @@ public class FunctionTable {
 		
 		public boolean isThreadFunction(){
 			return this.isThread;
+		}
+		
+		public boolean isMethod() {
+			return this.type.isMethod();
 		}
 	}
 	

@@ -31,6 +31,7 @@ ACQUIRE: 'acquire';
 RELEASE: 'release';
 CLASS: 'class';
 NEW: 'new';
+ON: 'on';
 SEMI: ';';
 ASSIGN: '=';
 

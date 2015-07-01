@@ -183,6 +183,7 @@ public class Type {
 	public static class FunctionType extends Type {
 		private final Type returnType;
 		private final Type[] arguments;
+		private boolean isMethod;
 
 		private FunctionType(Type returnType, Type...arguments) {
 			super(1, String.format("(%s -> %s)", Arrays.toString(arguments), returnType));
@@ -196,6 +197,14 @@ public class Type {
 		
 		public Type[] getArguments() {
 			return arguments;
+		}
+
+		public boolean isMethod() {
+			return isMethod;
+		}
+
+		public void setMethod(boolean isMethod) {
+			this.isMethod = isMethod;
 		}
 	}
 }

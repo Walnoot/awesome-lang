@@ -74,6 +74,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	private FunctionTable functions		  = new FunctionTable();
 	private Type returnType				  = null;
 	private Boolean inSwitch			  = Boolean.FALSE;
+	private CompilationUnit cUnit;
 
 	private void addError(String string, ParserRuleContext ctx) {
 		
@@ -96,6 +97,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	
 	// execute source elements in the order: 
 	public void checkProgram(CompilationUnit cUnit) {
+		this.cUnit = cUnit;
 		// enum definitions
 		for(EnumDefContext child : cUnit.getEnumlist()) {
 			visit(child);
@@ -114,12 +116,27 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		}
 		
 		for(FunctionContext child : cUnit.getFunclist()) {
+			
+			// restore class scope, if neccesary
+			boolean isMethod = child.parent instanceof ClassDefContext;
+			Scope restore = null;
+			ClassType classType = null;
+			if (isMethod) {
+				classType = Type.getClass(((ClassDefContext) child.parent).ID().getText());
+				restore = this.variables.swapScopes(classType.getScope());
+			}
+			
 			// open scope (add local variables)
 			this.variables.openScope(((FunctionContext) child), true);
 			for(ArgumentContext arg : ((FunctionContext) child).argument()) {
 				// arg is already visitited in visitFunction
 				this.variables.add(arg, this.types.get(arg));
 			}
+			// add 'this' if the function is a method
+			if (isMethod && classType != null) {
+				this.variables.addMethodThis(classType);
+			}
+			
 			// add scope to function
 			Function func = this.functions.getFunction((FunctionContext) child);
 			func.setScope(this.variables.getCurrentScope());
@@ -139,6 +156,11 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			// reset return type and finalize
 			this.returnType = null;
 			this.variables.closeScope();
+			
+			// restore scope? (If a class was visited)
+			if (restore != null)
+				this.variables.swapScopes(restore);
+			
 		}
 	}
 	
@@ -213,6 +235,11 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 				visit(ctx.declStat(i));
 			}
 			
+			// delay function definition and execution
+			for (FunctionContext child : ctx.function()) {
+				this.cUnit.add(child);
+			}
+			
 			// close scope again (can still be accessed through Type.getClass(name).getScope()
 			this.variables.closeScope();
 		}
@@ -242,6 +269,16 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	
 	@Override 
 	public Void visitFunction(FunctionContext ctx) {
+		
+		boolean isClassMethod = ctx.parent instanceof ClassDefContext;
+		
+		// swap scope?
+		Scope restore = null;
+		if (isClassMethod) {
+			ClassType classType = Type.getClass(((ClassDefContext) ctx.parent).ID().getText());
+			restore = this.variables.swapScopes(classType.getScope());
+		}
+		
 		// only function definition, contents are evaluated in visitProgram.
 		TypeContext typeExpr = ctx.type();
 		if(typeExpr != null) visit(typeExpr);
@@ -255,17 +292,25 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			addError("Function " + ctx.ID().getText() + " does not return properly", ctx);
 		}
 		
-		Type[] argTypes = new Type[ctx.argument().size()];
+		Type[] argTypes = new Type[ctx.argument().size()+(isClassMethod ? 1 : 0)];
 		for (int i = 0; i < ctx.argument().size(); i++) {
 			argTypes[i] = this.types.get(ctx.argument(i));
 		}
+		// class method, first argument becomes the object reference
+		if (isClassMethod)
+			argTypes[argTypes.length-1] = Type.getClass(((ClassDefContext) ctx.parent).ID().getText());
 		
+					
 		boolean thread = (ctx.THREAD() != null);
 		if (thread && ctx.argument().size() > 0) {
 			this.addError("Thread definition contains arguments in expression: {expr}", ctx);
 		}
+		if (thread && isClassMethod) {
+			this.addError("You cannot use a class method as a thread, in expression: {expr}", ctx);
+		}
 		
-		FunctionType fType = Type.function(retType, argTypes); 
+		FunctionType fType = Type.function(retType, argTypes);
+		fType.setMethod(isClassMethod);
 		String name  	   = ctx.ID().getText(); 
 		if (this.functions.containsWithArgs(name, fType)) {
 			this.addError("Double function definition with the same arguments in expression: {expr}", ctx);
@@ -274,6 +319,11 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		}
 		
 		this.functions.addContextToFunction(ctx, fType);
+		
+		// restore scope (only if swapped?)
+		if (restore != null) {
+			this.variables.swapScopes(restore);
+		}
 		
 		return null;
 	}
@@ -289,14 +339,13 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		}
 		String name = ctx.ID().getText();
 		
-		FunctionType ftype = this.functions.getFunctionTypeByArgs(name, args);
+		FunctionType ftype = this.functions.getFunctionTypeByArgs(name, args, ctx.ON() != null);
 		if (ftype == null) {
-			this.addError("Function call to unknown function in expression: {expr}", ctx);
+			this.addError("Function call to unknown " + (ctx.ON() == null ? "function " : "method") + "in expression: {expr}", ctx);
 		} else {
 			this.types.put(ctx, ftype.getReturnType());
 			this.functions.addContextToFunction(ctx, ftype);
 		}
-		
 		return null;
 	}
 	
@@ -636,6 +685,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		}
 		return null;
 	}
+	
 	
 	@Override
 	public Void visitEnumExpr(EnumExprContext ctx) {
