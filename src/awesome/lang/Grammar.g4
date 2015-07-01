@@ -54,7 +54,7 @@ type: INT						#intType
 	| CHAR						#charType
 	| LSB type /*COLON NUM*/ RSB#arrayType
 	| LOCK						#lockType
-	| ID						#enumType
+	| ID						#enumOrClassType // Naam van enumType->enumOrClassType
 	;
 
 /** Expression. */
@@ -74,6 +74,7 @@ expr: prefixOp expr					#prefixExpr
 	| ID COLON ID					#enumExpr
 	| LSB ( expr (COMMA expr)*) RSB	#arrayValueExpr
 	| type LSB expr RSB				#arrayLengthExpr
+	| NEW ID						#newClassExpr
 	| STRING						#stringExpr
 	;
 
