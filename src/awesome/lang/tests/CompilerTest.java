@@ -136,6 +136,8 @@ public class CompilerTest {
 	@Test
 	public void testObjects() throws IOException, InterruptedException, CompilationException {
 		testProgram("class Int {int x;} Int obj = new Int; obj.x = 4; print(obj.x);", "4");
+		testProgram("class Int {[int] x;} Int obj = new Int; obj.x = [4]; print(obj.x[0]);", "4");
+		testProgram("class Point {int x;int y;} Point obj = new Point; obj.x = 4; obj.y=3; print(obj.x); print(obj.y);", "43");
 	}
 	
 	@Test

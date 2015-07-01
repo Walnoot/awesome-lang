@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import awesome.lang.checking.CompilationUnit;
 import awesome.lang.checking.TypeChecker;
 import awesome.lang.model.Program;
+import awesome.lang.model.Type;
 
 /**
  * Combines Typechecker and Generator
@@ -24,6 +25,7 @@ public class Compiler {
 	private Program build(ImportResolver resolver) throws CompilationException {
 		CompilationUnit cUnit = resolver.getContextDataSet();
 		
+		Type.clearUserTypes();
 		TypeChecker checker = new TypeChecker();
 		checker.checkProgram(cUnit);
 		

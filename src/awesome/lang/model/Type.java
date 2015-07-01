@@ -38,6 +38,11 @@ public class Type {
 		return Type.enums.containsKey(name);
 	}
 	
+	public static void clearUserTypes(){
+		enums.clear();
+		classes.clear();
+	}
+	
 	/**
 	 * If not exists, returns null. 
 	 */
