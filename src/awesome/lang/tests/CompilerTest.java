@@ -136,7 +136,28 @@ public class CompilerTest {
 	@Test
 	public void testObjects() throws IOException, InterruptedException, CompilationException {
 		testProgram("class Int {int x;} Int obj = new Int; obj.x = 4; print(obj.x);", "4");
+		testProgram(""
+				+ "class Pair { "
+				+ " int v1; int v2; "
+				+ " bool setV1(int y) : { v1 = y; return true; }"
+				+ "}"
+				+ "Pair couple = new Pair;"
+				+ "setV1(5) on couple;"
+				+ "print(couple.v1);", "4");
+		testProgram("class Test {"
+					+ "	int a;"
+					+ "	int b;"
+					+ "	int setA(int a) : {"
+					+ "		this.a = a;"
+					+ "		return 0;"
+					+ "	}"
+					+ "}"
+					+ "int setA(int a, Test b) : { b.a = a; return 1; }" 
+					+ "Test pair = new Test;"
+					+ "setA(5) on pair;"
+					+ "setA(5, pair);", "");
 	}
+	
 	
 	@Test
 	public void testThreads() throws IOException, InterruptedException, CompilationException {

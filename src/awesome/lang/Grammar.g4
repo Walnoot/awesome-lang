@@ -33,7 +33,7 @@ declAssignStat: type ID ASSIGN expr;
 //	   ;
 
 //target of assignment or expr
-target: ID					#idTarget
+target: ID					#idTarget // default value is a zero for all types
 	  | target LSB expr RSB	#arrayTarget
 	  | target DOT ID		#classTarget
 	  ;
@@ -43,18 +43,18 @@ argument: type ID;
 
 enumDef: ENUM ID LCB (ID (COMMA ID)*)? RCB;
 
-classDef: CLASS ID LCB (declStat SEMI)* RCB ;
+classDef: CLASS ID LCB (declStat SEMI | function)* RCB ;
 
 function: (THREAD | type?) ID LB (argument (COMMA argument)*)? RB (COLON stat | ARROW expr SEMI);
 
-functionCall: ID LB (expr (COMMA expr)*)? RB;
-
+functionCall: ID LB (expr (COMMA expr)*)? RB (ON expr)?;
+ 
 type: INT						#intType
 	| BOOL						#boolType
 	| CHAR						#charType
 	| LSB type /*COLON NUM*/ RSB#arrayType
 	| LOCK						#lockType
-	| ID						#enumOrClassType // Naam van enumType->enumOrClassType
+	| ID						#enumOrClassType
 	;
 
 /** Expression. */

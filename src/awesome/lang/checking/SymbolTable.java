@@ -15,6 +15,7 @@ import awesome.lang.GrammarParser.IdTargetContext;
 import awesome.lang.GrammarParser.TargetContext;
 import awesome.lang.model.Scope;
 import awesome.lang.model.Type;
+import awesome.lang.model.Type.ClassType;
 
 public class SymbolTable{
 
@@ -26,6 +27,27 @@ public class SymbolTable{
 		this.declarations.add(new Scope(null, null, true));
 	}
 
+	/** 
+	 * Swaps the current scope for a provided one, restores the internal declarations array by looking at the parents of the scope.
+	 * This is just to make sure that methods are evaluated in the right context. Make sure that you always restore the value by calling this function again!
+	 */
+	public Scope swapScopes(Scope newScope) {
+		Scope retValue = this.getCurrentScope();
+		ArrayList<Scope> newDecs = new ArrayList<Scope>();
+		
+		newDecs.add(newScope);
+		Scope temp = newScope;
+		while(temp.parent != null) {
+			temp = temp.parent;
+			newDecs.add(temp);
+		}
+		this.declarations.clear();
+		for(int i = newDecs.size()-1; i >= 0; i--) {
+			this.declarations.add(newDecs.get(i));
+		}
+		
+		return retValue;
+	}
 	
 	public Scope getCurrentScope() {
 		return this.declarations.get(this.declarations.size()-1);
@@ -82,7 +104,6 @@ public class SymbolTable{
 	}
 	// only add type, do not compute offset!
 	public boolean add(ArrayTargetContext ctx, Type type) {
-		
 		boolean success = this.getCurrentScope().add(ctx.getText(), type, false);
 		this.contextmap.put(ctx,  this.getCurrentScope());
 		return success;
@@ -104,6 +125,10 @@ public class SymbolTable{
 		
 		return success;
 		
+	}
+	
+	public boolean addMethodThis(ClassType type) {
+		return this.getCurrentScope().add("this", type);
 	}
 	
 	/**
