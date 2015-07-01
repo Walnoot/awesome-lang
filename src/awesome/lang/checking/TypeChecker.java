@@ -104,7 +104,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		for(EnumDefContext child : cUnit.getEnumlist()) {
 			visit(child);
 		}
-		// class definitions 
+		// class definitions (methods are added to cunit.functions)
 		for(ClassDefContext child : cUnit.getClasslist()) {
 			visit(child);
 		}
@@ -318,7 +318,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		String name  	   = ctx.ID().getText(); 
 		if (this.functions.containsWithArgs(name, fType)) {
 			this.addError("Double function definition with the same arguments in expression: {expr}", ctx);
-		} else if (name.equals(CONSTRUCTOR) && isClassMethod && Type.VOID.equals(fType.getReturnType())) {
+		} else if (name.equals(CONSTRUCTOR) && isClassMethod && Type.VOID.equals(fType.getReturnType()) == false) {
 			this.addError("A constructor should be a void, in expression: {expr}", ctx);
 		} else {
 			this.functions.addFunction(name, fType, thread);
@@ -712,7 +712,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			}
 			args[0] = cType;
 			
-			FunctionType ftype = this.functions.getFunctionTypeByArgs(name, args, true);
+			FunctionType ftype = this.functions.getFunctionTypeByArgs("init", args, true);
 			if (ftype == null && args.length > 1) {
 				this.addError("Function call to unknown constructor in expression: {expr}", ctx);
 			} else {

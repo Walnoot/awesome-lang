@@ -10,10 +10,6 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
-import awesome.lang.GrammarParser.ExprContext;
-import awesome.lang.GrammarParser.FunctionContext;
-import awesome.lang.GrammarParser.IdTargetContext;
-import awesome.lang.GrammarParser.NewObjectExprContext;
 import awesome.lang.GrammarParser.*;
 import awesome.lang.checking.CompilationUnit;
 import awesome.lang.checking.FunctionTable;
@@ -694,6 +690,30 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		return first;
 	}
 	
+	private void callConstructor(Function func, Reg address, List<ExprContext> args) {
+		int localSize = func.getScope().getOffset() - args.size() - 1;
+		Reg stackReg = newReg();
+		prog.addInstr(OpCode.Const, localSize, stackReg);
+		prog.addInstr(OpCode.Compute, Operator.Sub, Reg.SP, stackReg, Reg.SP);
+		freeReg(stackReg);
+		
+		//parameters
+		for(int i = args.size() - 1; i >= 0; i--) {
+			ExprContext arg = args.get(i);
+			visit(arg);
+			
+			Reg tempReg = regs.get(arg);
+			prog.addInstr(OpCode.Push, tempReg);
+			freeReg(tempReg);
+		}
+		
+		prog.addInstr(OpCode.Push, address);
+		
+		Reg reg = newReg();
+		callFunctionRest(func, reg);
+		freeReg(reg);
+	}
+	
 	//expressions
 	
 	@Override
@@ -910,9 +930,23 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitNewObjectExpr(NewObjectExprContext ctx) {
-		int size = Type.getClass(ctx.newObject().ID().getText()).getScope().getOffset();
+		Instruction instr = visit(ctx.newObject());
+		regs.put(ctx, regs.get(ctx.newObject()));
+		
+		return instr;
+	}
+	
+	@Override
+	public Instruction visitNewObject(NewObjectContext ctx) {
+		int size = Type.getClass(ctx.ID().getText()).getScope().getOffset();
 		Instruction instr = alloc(size, newReg(ctx));
-		//TODO: Visit constructor?
+		
+		Function func = funcTable.getFunction(ctx);
+		
+		if(func != null){//constructor is optional
+			callConstructor(func, regs.get(ctx), ctx.expr());
+		}
+		
 		return instr;
 	}
 	

@@ -10,6 +10,7 @@ import org.antlr.v4.runtime.tree.ParseTreeProperty;
 import awesome.lang.GrammarParser.FunctionCallContext;
 import awesome.lang.GrammarParser.FunctionContext;
 import awesome.lang.GrammarParser.NewObjectContext;
+import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.model.Scope;
 import awesome.lang.model.Type;
 import awesome.lang.model.Type.FunctionType;
@@ -81,6 +82,9 @@ public class FunctionTable {
 		return this.contextTypes.get(ctx);
 	}
 
+	public Function getFunction(NewObjectContext ctx) {
+		return this.contextTypes.get(ctx);
+	}
 	
 	public Function getFunction(String name, Type[] arguments) {
 		List<Function> types = this.getFunctions(name);
