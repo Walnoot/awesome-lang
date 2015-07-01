@@ -306,6 +306,12 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	}
 	
 	@Override
+	public Void visitCharType(CharTypeContext ctx) {
+		types.put(ctx, Type.CHAR);
+		return null;
+	}
+	
+	@Override
 	public Void visitLockType(LockTypeContext ctx) {
 		types.put(ctx, Type.LOCK);
 		// this type can only be defined in the global scope
@@ -348,9 +354,6 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			this.addError("Redeclaration of variable "+ctx.ID().getText()+" in expression: {expr}", ctx);
 		}
 		if (type.equals(exprtype) == false) {
-			System.out.println("T1:" + type);
-			System.out.println("T2:" + exprtype);
-			System.out.println(type.equals(exprtype));
 			this.addError("type of variable "+ctx.ID().getText()+" is not equal to type of expression: {expr}", ctx);
 		}
 		return null;
@@ -465,7 +468,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		visit(ctx.expr(0));
 		visit(ctx.expr(1));
 		
-		if(types.get(ctx.expr(0)) != Type.INT || types.get(ctx.expr(1)) != Type.INT) {
+		if(types.get(ctx.expr(1)) != Type.INT) {
 			addError("Expressions in write statement must be of type int: {expr}", ctx);
 		}
 		
@@ -694,6 +697,13 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		}
 		
 		types.put(ctx, Type.array(types.get(ctx.type())));
+		
+		return null;
+	}
+	
+	@Override
+	public Void visitStringExpr(StringExprContext ctx) {
+		types.put(ctx, Type.array(Type.CHAR));
 		
 		return null;
 	}

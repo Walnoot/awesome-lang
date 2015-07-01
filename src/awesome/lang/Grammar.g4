@@ -50,6 +50,7 @@ functionCall: ID LB (expr (COMMA expr)*)? RB;
 
 type: INT						#intType
 	| BOOL						#boolType
+	| CHAR						#charType
 	| LSB type /*COLON NUM*/ RSB#arrayType
 	| LOCK						#lockType
 	| ID						#enumType
@@ -72,6 +73,7 @@ expr: prefixOp expr					#prefixExpr
 	| ID DOT ID						#enumExpr
 	| LSB ( expr (COMMA expr)*) RSB	#arrayValueExpr
 	| type LSB expr RSB				#arrayLengthExpr
+	| STRING						#stringExpr
 	;
 
 /** Prefix operator. */
