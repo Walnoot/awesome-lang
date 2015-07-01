@@ -63,15 +63,18 @@ public class FunctionTable {
 	}
 
 	public void addContextToFunction(FunctionCallContext ctx, FunctionType type) {
-		this.contextTypes.put(ctx, this.getFunction(ctx.ID().getText(), type.getArguments()));
+		this.contextTypes.put(ctx, this.getFunction(ctx.ID().getText(), type.getArguments(), type.isMethod()));
 	}
 
 	public void addContextToFunction(FunctionContext ctx, FunctionType type) {
-		this.contextTypes.put(ctx, this.getFunction(ctx.ID().getText(), type.getArguments()));
+		this.contextTypes.put(ctx, this.getFunction(ctx.ID().getText(), type.getArguments(), type.isMethod()));
 	}
 
 	public void addContextToFunction(NewObjectContext ctx, FunctionType type) {
-		this.contextTypes.put(ctx, this.getFunction(ctx.ID().getText(), type.getArguments()));
+		Type[] arguments = type.getArguments();
+		boolean method = type.isMethod();
+		Function function = this.getFunction("init", arguments, method);
+		this.contextTypes.put(ctx, function);
 	}
 	
 	public Function getFunction(FunctionCallContext ctx) {
@@ -86,12 +89,13 @@ public class FunctionTable {
 		return this.contextTypes.get(ctx);
 	}
 	
-	public Function getFunction(String name, Type[] arguments) {
+	
+	public Function getFunction(String name, Type[] arguments, boolean isMethod) {
 		List<Function> types = this.getFunctions(name);
 		
 		if(types != null) {
 			for (Function tCheck : types) {
-				if (Arrays.equals(tCheck.getFunctionType().getArguments(), arguments))
+				if (Arrays.equals(tCheck.getFunctionType().getArguments(), arguments) && tCheck.getFunctionType().isMethod() == isMethod)
 					return tCheck;
 			}
 		}
@@ -103,7 +107,7 @@ public class FunctionTable {
 		List<FunctionType> types = this.getTypes(name);
 		if(types != null) {
 			for (FunctionType tCheck : types) {
-				if (tCheck.equals(type))
+				if (tCheck.equals(type) && tCheck.isMethod() == type.isMethod())
 					return true;
 			}
 		}

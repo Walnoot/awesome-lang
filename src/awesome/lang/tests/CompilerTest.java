@@ -167,6 +167,20 @@ public class CompilerTest {
 				+ " }"
 				+ "}"
 				+ "Test obj = new Test(3); print(obj.a);", "3");
+		
+		testProgram("class Test {"
+				+ " int a;"
+				+ " int b;"
+				+ " init(int a, int b, int c): {"
+				+ "  this.a = a;"
+				+ "  this.b = b+c;"
+				+ " }"
+				+ " init(int a): {"
+				+ "  this.a = a;"
+				+ "  this.b = 0;"
+				+ " }"
+				+ "}"
+				+ "Test obj = new Test(3,2,2); print(obj.a+obj.b);", "7");
 	}
 	
 	

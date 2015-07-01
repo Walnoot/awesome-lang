@@ -717,6 +717,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 				args[i+1] = this.types.get(ctx.expr(i));
 			}
 			args[0] = cType;
+//			System.out.println("Calling init of " + name + " with parameters " + Arrays.toString(args));
 			FunctionType ftype = this.functions.getFunctionTypeByArgs("init", args, true);
 			if (ftype == null && args.length > 1) {
 				this.addError("Function call to unknown constructor in expression: {expr}", ctx);
