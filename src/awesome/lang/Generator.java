@@ -572,8 +572,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		//return value
 		//RegA .. RegB
 
-//		List<ExprContext> args = ctx.expr();
-		
 		//reserve space for local variables
 		int localSize = func.getScope().getOffset() - args.size();
 		Reg stackReg = newReg();

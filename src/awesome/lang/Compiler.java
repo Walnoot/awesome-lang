@@ -1,6 +1,8 @@
 package awesome.lang;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 import awesome.lang.checking.TypeChecker;
@@ -11,9 +13,14 @@ import awesome.lang.model.Program;
  */
 public class Compiler {
 	public Program compile(String program) throws CompilationException {
-//		ParseTree tree = Util.parseProgram(ips);
-		ImportResolver resolver = new ImportResolver(program);
-		
+		return build(new ImportResolver(program));
+	}
+	
+	public Program compile(Path path) throws CompilationException {
+		return build(new ImportResolver(path));
+	}
+
+	private Program build(ImportResolver resolver) throws CompilationException {
 		// walk through
 		TypeChecker checker = new TypeChecker();
 		checker.checkProgram(resolver.getFunctions(), resolver.getStatements(), resolver.getEnums());
@@ -41,15 +48,19 @@ public class Compiler {
 	}
 	
 	public static void main(String[] args) throws CompilationException, IOException {
-		String prog = "";
-		for (int i = 0; i < args.length; i++) {
-			if(i != 0) prog += " ";
-			prog += args[i];
+		if(args[0].equals("ex")) {
+			new Compiler().compile(Paths.get("src/awesome/lang/examples/", args[1])).writeSprockell("example.hs");
+		} else {
+			String prog = "";
+			for (int i = 0; i < args.length; i++) {
+				if(i != 0) prog += " ";
+				prog += args[i];
+			}
+			
+			System.out.printf("Compiling %s\n", prog);
+			
+			Program program = new Compiler().compile(prog);
+			program.writeSprockell("comp.hs");
 		}
-		
-		System.out.printf("Compiling %s\n", prog);
-		
-		Program program = new Compiler().compile(prog);
-		program.writeSprockell("comp.hs");
 	}
 }
