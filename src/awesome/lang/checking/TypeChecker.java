@@ -141,18 +141,6 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	
 	@Override
 	public Void visitAcquireStat(AcquireStatContext ctx) {
-		TargetContext idHolder = ctx.target();
-		while (idHolder instanceof ArrayTargetContext) {
-			idHolder = ((ArrayTargetContext) idHolder).target();
-		}
-		
-		if (idHolder instanceof IdTargetContext == false) {
-			throw new UnsupportedOperationException("TargetContext has a new subclass, this resulted in failure in method visitAcquireStat, please check!");
-		}
-		
-		if (this.variables.contains(((IdTargetContext) idHolder).ID().getText()) == false) {
-			this.addError("Lock with ID \""+((IdTargetContext) idHolder).ID().getText()+"\" used, but not defined anywhere, in expression: {expr}", ctx);
-		}
 		
 		visit(ctx.target());
 		if(Type.LOCK.equals(this.types.get(ctx.target())) == false) {
@@ -163,18 +151,6 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	
 	@Override
 	public Void visitReleaseStat(ReleaseStatContext ctx) {
-		TargetContext idHolder = ctx.target();
-		while (idHolder instanceof ArrayTargetContext) {
-			idHolder = ((ArrayTargetContext) idHolder).target();
-		}
-		
-		if (idHolder instanceof IdTargetContext == false) {
-			throw new UnsupportedOperationException("TargetContext has a new subclass, this resulted in failure in method visitAcquireStat, please check!");
-		}
-		
-		if (this.variables.contains(((IdTargetContext) idHolder).ID().getText()) == false) {
-			this.addError("Lock with ID \""+((IdTargetContext) idHolder).ID().getText()+"\" used, but not defined anywhere, in expression: {expr}", ctx);
-		}
 		
 		visit(ctx.target());
 		if(Type.LOCK.equals(this.types.get(ctx.target())) == false) {

@@ -35,6 +35,7 @@ declAssignStat: type ID ASSIGN expr;
 //target of assignment or expr
 target: ID					#idTarget
 	  | target LSB expr RSB	#arrayTarget
+	  | target DOT ID		#classTarget
 	  ;
 
 // method definition parameter
@@ -70,7 +71,7 @@ expr: prefixOp expr					#prefixExpr
 	| TRUE							#trueExpr
 	| FALSE							#falseExpr
 	| functionCall					#funcExpr
-	| ID DOT ID						#enumExpr
+	| ID COLON ID					#enumExpr
 	| LSB ( expr (COMMA expr)*) RSB	#arrayValueExpr
 	| type LSB expr RSB				#arrayLengthExpr
 	| STRING						#stringExpr

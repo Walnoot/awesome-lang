@@ -94,13 +94,13 @@ public class CompilerTest {
 	
 	@Test
 	public void testEnums() throws IOException, InterruptedException, CompilationException {
-		testProgram("enum pers { michiel, jacco} if (pers.michiel != pers.jacco) { print(1); }","1");
-		testProgram("room location = room.basement; "
+		testProgram("enum pers { michiel, jacco} if (pers:michiel != pers:jacco) { print(1); }","1");
+		testProgram("room location = room:basement; "
 				  + "enum room { kitchen, livingroom, basement } "
 				  + "switch(location) {"
-				  + " case room.kitchen { print(1); }"
-				  + " case room.livingroom { print(2); }"
-				  + " case room.basement { print(3); } "
+				  + " case room:kitchen { print(1); }"
+				  + " case room:livingroom { print(2); }"
+				  + " case room:basement { print(3); } "
 				  + "}", "3");
 	}
 
