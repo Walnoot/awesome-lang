@@ -135,15 +135,15 @@ public class CompilerTest {
 	
 	@Test
 	public void testObjects() throws IOException, InterruptedException, CompilationException {
-		testProgram("class Int {int x;} Int obj = new Int; obj.x = 4; print(obj.x);", "4");
-		testProgram("class Int {[int] x;} Int obj = new Int; obj.x = [4]; print(obj.x[0]);", "4");
-		testProgram("class Point {int x;int y;} Point obj = new Point; obj.x = 4; obj.y=3; print(obj.x); print(obj.y);", "43");
+		testProgram("class Int {int x;} Int obj = new Int(); obj.x = 4; print(obj.x);", "4");
+		testProgram("class Int {[int] x;} Int obj = new Int(); obj.x = [4]; print(obj.x[0]);", "4");
+		testProgram("class Point {int x;int y;} Point obj = new Point(); obj.x = 4; obj.y=3; print(obj.x); print(obj.y);", "43");
 		testProgram(""
 				+ "class Pair { "
 				+ " int v1; int v2; "
 				+ " bool setV1(int y) : { v1 = y; return true; }"
 				+ "}"
-				+ "Pair couple = new Pair;"
+				+ "Pair couple = new Pair();"
 				+ "setV1(4) on couple;"
 				+ "print(couple.v1);", "4");
 		testProgram("class Test {"
@@ -155,7 +155,7 @@ public class CompilerTest {
 					+ "	}"
 					+ "}"
 					+ "int setA(int a, Test b) : { b.a = a; return 1; }" 
-					+ "Test pair = new Test;"
+					+ "Test pair = new Test();"
 					+ "setA(5) on pair;"
 					+ "setA(5, pair);", "");
 	}

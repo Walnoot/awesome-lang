@@ -13,6 +13,7 @@ import org.antlr.v4.runtime.tree.ParseTreeProperty;
 import awesome.lang.GrammarParser.ExprContext;
 import awesome.lang.GrammarParser.FunctionContext;
 import awesome.lang.GrammarParser.IdTargetContext;
+import awesome.lang.GrammarParser.NewObjectExprContext;
 import awesome.lang.GrammarParser.*;
 import awesome.lang.checking.CompilationUnit;
 import awesome.lang.checking.FunctionTable;
@@ -908,10 +909,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	}
 	
 	@Override
-	public Instruction visitNewClassExpr(NewClassExprContext ctx) {
-		int size = Type.getClass(ctx.ID().getText()).getScope().getOffset();
+	public Instruction visitNewObjectExpr(NewObjectExprContext ctx) {
+		int size = Type.getClass(ctx.newObject().ID().getText()).getScope().getOffset();
 		Instruction instr = alloc(size, newReg(ctx));
-		
+		//TODO: Visit constructor?
 		return instr;
 	}
 	

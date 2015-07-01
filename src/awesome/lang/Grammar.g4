@@ -48,6 +48,8 @@ classDef: CLASS ID LCB (declStat SEMI | function)* RCB ;
 function: (THREAD | type?) ID LB (argument (COMMA argument)*)? RB (COLON stat | ARROW expr SEMI);
 
 functionCall: ID LB (expr (COMMA expr)*)? RB (ON expr)?;
+
+newObject: NEW ID LB (expr (COMMA expr)*)? RB;
  
 type: INT						#intType
 	| BOOL						#boolType
@@ -74,7 +76,7 @@ expr: prefixOp expr					#prefixExpr
 	| ID COLON ID					#enumExpr
 	| LSB ( expr (COMMA expr)*) RSB	#arrayValueExpr
 	| type LSB expr RSB				#arrayLengthExpr
-	| NEW ID						#newClassExpr
+	| newObject						#newObjectExpr
 	| STRING						#stringExpr
 	;
 

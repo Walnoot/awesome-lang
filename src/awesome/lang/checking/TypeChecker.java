@@ -42,7 +42,8 @@ import awesome.lang.GrammarParser.IntTypeContext;
 import awesome.lang.GrammarParser.LockTypeContext;
 import awesome.lang.GrammarParser.ModExprContext;
 import awesome.lang.GrammarParser.MultDivExprContext;
-import awesome.lang.GrammarParser.NewClassExprContext;
+import awesome.lang.GrammarParser.NewObjectContext;
+import awesome.lang.GrammarParser.NewObjectExprContext;
 import awesome.lang.GrammarParser.NextStatContext;
 import awesome.lang.GrammarParser.NumExprContext;
 import awesome.lang.GrammarParser.ParExprContext;
@@ -67,6 +68,7 @@ import awesome.lang.model.Type.EnumType;
 import awesome.lang.model.Type.FunctionType;
 
 public class TypeChecker extends GrammarBaseVisitor<Void> {
+	private static final String CONSTRUCTOR = "init";
 	private ParseTreeProperty<Type> types = new ParseTreeProperty<Type>();
 	private ParseTreeProperty<Boolean> blockNewScope = new ParseTreeProperty<Boolean>();
 	private ArrayList<String> errors 	  = new ArrayList<String>();
@@ -316,6 +318,8 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		String name  	   = ctx.ID().getText(); 
 		if (this.functions.containsWithArgs(name, fType)) {
 			this.addError("Double function definition with the same arguments in expression: {expr}", ctx);
+		} else if (name.equals(CONSTRUCTOR) && isClassMethod && Type.VOID.equals(fType.getReturnType())) {
+			this.addError("A constructor should be a void, in expression: {expr}", ctx);
 		} else {
 			this.functions.addFunction(name, fType, thread);
 		}
@@ -683,14 +687,41 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	}
 	
 	@Override
-	public Void visitNewClassExpr(NewClassExprContext ctx) {
+	public Void visitNewObjectExpr(NewObjectExprContext ctx) {
+		visit(ctx.newObject());
+		this.types.put(ctx, this.types.get(ctx.newObject()));
+		return null;
+	}
+	
+	@Override
+	public Void visitNewObject(NewObjectContext ctx) {
 		String name = ctx.ID().getText();
 		if (Type.classExists(name) == false) {
 			 this.addError("Using an undefined class in expression: {expr}", ctx);
 			 this.types.put(ctx, Type.BOOL); // default value
 		}
 		else {
-			this.types.put(ctx, Type.getClass(name));
+			ClassType cType = Type.getClass(name);
+			this.types.put(ctx, cType);
+			
+			// argument validation
+			Type[] args = new Type[ctx.expr().size()+1];
+			for(int i = 0; i < ctx.expr().size(); i++) {
+				visit(ctx.expr(i));
+				args[i] = this.types.get(ctx.expr(i));
+			}
+			args[0] = cType;
+			
+			FunctionType ftype = this.functions.getFunctionTypeByArgs(name, args, true);
+			if (ftype == null && args.length > 1) {
+				this.addError("Function call to unknown constructor in expression: {expr}", ctx);
+			} else {
+				if (ftype != null) {
+					this.types.put(ctx, ftype.getReturnType());
+					this.functions.addContextToFunction(ctx, ftype);
+				}
+			}
+			
 		}
 		return null;
 	}
