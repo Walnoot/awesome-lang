@@ -28,7 +28,7 @@ import awesome.lang.GrammarParser.DeclStatContext;
 import awesome.lang.GrammarParser.DoStatContext;
 import awesome.lang.GrammarParser.EnumDefContext;
 import awesome.lang.GrammarParser.EnumExprContext;
-import awesome.lang.GrammarParser.EnumTypeContext;
+import awesome.lang.GrammarParser.EnumOrClassTypeContext;
 import awesome.lang.GrammarParser.ExprContext;
 import awesome.lang.GrammarParser.FalseExprContext;
 import awesome.lang.GrammarParser.ForStatContext;
@@ -51,7 +51,6 @@ import awesome.lang.GrammarParser.ReturnStatContext;
 import awesome.lang.GrammarParser.StatContext;
 import awesome.lang.GrammarParser.StringExprContext;
 import awesome.lang.GrammarParser.SwitchStatContext;
-import awesome.lang.GrammarParser.TargetContext;
 import awesome.lang.GrammarParser.TargetExprContext;
 import awesome.lang.GrammarParser.TrueExprContext;
 import awesome.lang.GrammarParser.TypeContext;
@@ -193,6 +192,11 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	}
 	
 	@Override
+	public Void visitClassDef(ClassDefContext ctx) {
+		return null;
+	}
+	
+	@Override
 	public Void visitEnumDef(EnumDefContext ctx) {
 		// get name+values
 		String name = ctx.ID(0).getText();
@@ -306,7 +310,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	}
 	
 	@Override
-	public Void visitEnumType(EnumTypeContext ctx) {
+	public Void visitEnumOrClassType(EnumOrClassTypeContext ctx) {
 		String name = ctx.ID().getText();
 		if (Type.enumExists(name) == false) {
 			this.addError("Using an undefined enum in expression: {expr}", ctx);
