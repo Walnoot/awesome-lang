@@ -8,7 +8,55 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
 import awesome.lang.*;
-import awesome.lang.GrammarParser.*;
+import awesome.lang.GrammarParser.AcquireStatContext;
+import awesome.lang.GrammarParser.AddSubExprContext;
+import awesome.lang.GrammarParser.ArgumentContext;
+import awesome.lang.GrammarParser.ArrayLengthExprContext;
+import awesome.lang.GrammarParser.ArrayTargetContext;
+import awesome.lang.GrammarParser.ArrayTypeContext;
+import awesome.lang.GrammarParser.ArrayValueExprContext;
+import awesome.lang.GrammarParser.AssignStatContext;
+import awesome.lang.GrammarParser.BlockContext;
+import awesome.lang.GrammarParser.BlockStatContext;
+import awesome.lang.GrammarParser.BoolExprContext;
+import awesome.lang.GrammarParser.BoolTypeContext;
+import awesome.lang.GrammarParser.CharTypeContext;
+import awesome.lang.GrammarParser.ClassDefContext;
+import awesome.lang.GrammarParser.CompExprContext;
+import awesome.lang.GrammarParser.DeclAssignStatContext;
+import awesome.lang.GrammarParser.DeclStatContext;
+import awesome.lang.GrammarParser.DoStatContext;
+import awesome.lang.GrammarParser.EnumDefContext;
+import awesome.lang.GrammarParser.EnumExprContext;
+import awesome.lang.GrammarParser.EnumTypeContext;
+import awesome.lang.GrammarParser.ExprContext;
+import awesome.lang.GrammarParser.FalseExprContext;
+import awesome.lang.GrammarParser.ForStatContext;
+import awesome.lang.GrammarParser.FuncExprContext;
+import awesome.lang.GrammarParser.FunctionCallContext;
+import awesome.lang.GrammarParser.FunctionContext;
+import awesome.lang.GrammarParser.IdTargetContext;
+import awesome.lang.GrammarParser.IfStatContext;
+import awesome.lang.GrammarParser.IntTypeContext;
+import awesome.lang.GrammarParser.LockTypeContext;
+import awesome.lang.GrammarParser.ModExprContext;
+import awesome.lang.GrammarParser.MultDivExprContext;
+import awesome.lang.GrammarParser.NextStatContext;
+import awesome.lang.GrammarParser.NumExprContext;
+import awesome.lang.GrammarParser.ParExprContext;
+import awesome.lang.GrammarParser.PrefixExprContext;
+import awesome.lang.GrammarParser.ReadExprContext;
+import awesome.lang.GrammarParser.ReleaseStatContext;
+import awesome.lang.GrammarParser.ReturnStatContext;
+import awesome.lang.GrammarParser.StatContext;
+import awesome.lang.GrammarParser.StringExprContext;
+import awesome.lang.GrammarParser.SwitchStatContext;
+import awesome.lang.GrammarParser.TargetContext;
+import awesome.lang.GrammarParser.TargetExprContext;
+import awesome.lang.GrammarParser.TrueExprContext;
+import awesome.lang.GrammarParser.TypeContext;
+import awesome.lang.GrammarParser.WhileStatContext;
+import awesome.lang.GrammarParser.WriteStatContext;
 import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.model.Type;
 import awesome.lang.model.Type.ArrayType;
@@ -43,21 +91,26 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return functions;
 	}
 	
-	public void checkProgram(ArrayList<FunctionContext> functions, ArrayList<StatContext> statements, ArrayList<EnumDefContext> enums) {
+	// execute source elements in the order: 
+	public void checkProgram(CompilationUnit cUnit) {
 		// enum definitions
-		for(EnumDefContext child : enums) {
+		for(EnumDefContext child : cUnit.getEnumlist()) {
 			visit(child);
 		}
-		// function definitions
-		for(FunctionContext child : functions) {
+		// class definitions 
+		for(ClassDefContext child : cUnit.getClasslist()) {
 			visit(child);
 		}
-		
-		for(StatContext stat : statements){
+		// function definitions (visitFunction does not check its body, that task is left for the end of this function(checkProgram)
+		for(FunctionContext child : cUnit.getFunclist()) {
+			visit(child);
+		}
+		// execute all bodies
+		for(StatContext stat : cUnit.getStatlist()){
 			visit(stat);
 		}
 		
-		for(FunctionContext child : functions) {
+		for(FunctionContext child : cUnit.getFunclist()) {
 			// open scope (add local variables)
 			this.variables.openScope(((FunctionContext) child), true);
 			for(ArgumentContext arg : ((FunctionContext) child).argument()) {
@@ -84,6 +137,50 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			this.returnType = null;
 			this.variables.closeScope();
 		}
+	}
+	
+	@Override
+	public Void visitAcquireStat(AcquireStatContext ctx) {
+		TargetContext idHolder = ctx.target();
+		while (idHolder instanceof ArrayTargetContext) {
+			idHolder = ((ArrayTargetContext) idHolder).target();
+		}
+		
+		if (idHolder instanceof IdTargetContext == false) {
+			throw new UnsupportedOperationException("TargetContext has a new subclass, this resulted in failure in method visitAcquireStat, please check!");
+		}
+		
+		if (this.variables.contains(((IdTargetContext) idHolder).ID().getText()) == false) {
+			this.addError("Lock with ID \""+((IdTargetContext) idHolder).ID().getText()+"\" used, but not defined anywhere, in expression: {expr}", ctx);
+		}
+		
+		visit(ctx.target());
+		if(Type.LOCK.equals(this.types.get(ctx.target())) == false) {
+			this.addError("Trying to lock an " + this.types.get(ctx.target()) + " in expression: {expr}", ctx);
+		}
+		return null;
+	}
+	
+	@Override
+	public Void visitReleaseStat(ReleaseStatContext ctx) {
+		TargetContext idHolder = ctx.target();
+		while (idHolder instanceof ArrayTargetContext) {
+			idHolder = ((ArrayTargetContext) idHolder).target();
+		}
+		
+		if (idHolder instanceof IdTargetContext == false) {
+			throw new UnsupportedOperationException("TargetContext has a new subclass, this resulted in failure in method visitAcquireStat, please check!");
+		}
+		
+		if (this.variables.contains(((IdTargetContext) idHolder).ID().getText()) == false) {
+			this.addError("Lock with ID \""+((IdTargetContext) idHolder).ID().getText()+"\" used, but not defined anywhere, in expression: {expr}", ctx);
+		}
+		
+		visit(ctx.target());
+		if(Type.LOCK.equals(this.types.get(ctx.target())) == false) {
+			this.addError("Trying to lock an " + this.types.get(ctx.target()) + " in expression: {expr}", ctx);
+		}
+		return null;
 	}
 	
 	@Override
@@ -225,6 +322,10 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	@Override
 	public Void visitLockType(LockTypeContext ctx) {
 		types.put(ctx, Type.LOCK);
+		// this type can only be defined in the global scope
+		if (this.variables.getCurrentScope().isGlobal() == false) {
+			this.addError("Locks can only be defined in the global scope, in expression: {expr}", ctx);
+		}
 		return null;
 	}
 	
@@ -248,8 +349,8 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		types.put(ctx, Type.array(type));
 		return null;
 	}
-	
-	@Override
+
+	@Override // Lock support is not required here, because constraints on the equality of the type and the type of the expression. (Expression cannot become of type Lock).
 	public Void visitDeclAssignStat(DeclAssignStatContext ctx) {
 		// add new variable to scope (with value)
 		visit(ctx.type());
@@ -277,7 +378,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 
-	@Override
+	@Override 
 	public Void visitAssignStat(AssignStatContext ctx) {
 		visit(ctx.expr());
 		visit(ctx.target());
@@ -413,8 +514,6 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			this.types.put(ctx, Type.INT);
 		}
 		return null;
-		
-		
 	}
 
 	@Override

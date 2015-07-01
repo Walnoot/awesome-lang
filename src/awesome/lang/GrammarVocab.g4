@@ -29,6 +29,7 @@ READ: 'read';
 THREAD: 'thread';
 ACQUIRE: 'acquire';
 RELEASE: 'release';
+CLASS: 'class';
 SEMI: ';';
 ASSIGN: '=';
 
