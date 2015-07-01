@@ -200,6 +200,8 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		String name = ctx.ID().getText();
 		if (Type.classExists(name)) {
 			this.addError("Redefined class with name "+name+" in expression: {expr}", ctx);
+		} else if(Type.enumExists(name)) {
+			this.addError("Cannot define a class with the same identifier as an enum, in expression: {expr}", ctx);
 		} else {
 			// create class
 			ClassType cls = Type.newClass(name);
@@ -228,10 +230,13 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			}
 		}
 		// create new ENUM-type
-		if (Type.newEnum(name, values) == null) {
+		if (Type.enumExists(name)) {
 			this.addError("Redefined enum\""+name+"\" in expression: {expr}", ctx);
+		} else if(Type.classExists(name)) {
+			this.addError("Cannot define a enum with the same identifier as a class, in expression: {expr}", ctx);
+		} else {
+			Type.newEnum(name, values);
 		}
-		
 		return null;
 	}
 	
@@ -333,11 +338,14 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	@Override
 	public Void visitEnumOrClassType(EnumOrClassTypeContext ctx) {
 		String name = ctx.ID().getText();
-		if (Type.enumExists(name) == false) {
-			this.addError("Using an undefined enum in expression: {expr}", ctx);
+		if (Type.enumExists(name) == false && Type.classExists(name) == false) {
+			this.addError("Using an undefined enum or class type in expression: {expr}", ctx);
 			this.types.put(ctx, Type.BOOL); // default type is boolean, this is for not requiring the typechecker to check for failures in every expression.
 		} else {
-			this.types.put(ctx, Type.getEnum(name));
+			if (Type.enumExists(name))
+				this.types.put(ctx, Type.getEnum(name));
+			else 
+				this.types.put(ctx, Type.getClass(name));
 		}
 		return null;
 	}
