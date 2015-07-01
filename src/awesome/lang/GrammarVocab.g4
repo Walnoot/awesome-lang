@@ -30,6 +30,7 @@ THREAD: 'thread';
 ACQUIRE: 'acquire';
 RELEASE: 'release';
 CLASS: 'class';
+NEW: 'new';
 SEMI: ';';
 ASSIGN: '=';
 
