@@ -89,13 +89,13 @@ public class Type {
 	/**
 	 * Returns the type of an class, with given name. Returns null if the name is already taken
 	 */
-	public static EnumType newEnum(String name) {
+	public static ClassType newClass(String name) {
 		if (Type.classes.containsKey(name))
 			return null;
 		
-		EnumType newEnum = new EnumType(name, null);
-		Type.enums.put(name, newEnum);
-		return newEnum;
+		ClassType newClass = new ClassType(name, null);
+		Type.classes.put(name, newClass);
+		return newClass;
 	}
 	
 	public static class ClassType extends Type {

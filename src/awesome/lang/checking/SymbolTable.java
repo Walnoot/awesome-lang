@@ -8,6 +8,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import awesome.lang.GrammarParser.ArgumentContext;
 import awesome.lang.GrammarParser.ArrayTargetContext;
 import awesome.lang.GrammarParser.AssignStatContext;
+import awesome.lang.GrammarParser.ClassTargetContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
 import awesome.lang.GrammarParser.DeclStatContext;
 import awesome.lang.GrammarParser.IdTargetContext;
@@ -85,6 +86,16 @@ public class SymbolTable{
 		boolean success = this.getCurrentScope().add(ctx.getText(), type, false);
 		if (success) {
 			this.contextmap.put(ctx,  this.getCurrentScope());
+		}
+		
+		return success;
+	}
+	// only add type, do not compute offset!
+	public boolean add(ClassTargetContext ctx, Type type, Scope scope) {
+		
+		boolean success = scope.add(ctx.getText(), type, false);
+		if (success) {
+			this.contextmap.put(ctx,  scope);
 		}
 		
 		return success;
@@ -265,5 +276,9 @@ public class SymbolTable{
 		Scope scope = contextmap.get(var);
 			
 		return scope.isGlobal();
+	}
+	
+	public Scope getClassScope(ClassTargetContext ctx) {
+		return this.contextmap.get(ctx);
 	}
 }
