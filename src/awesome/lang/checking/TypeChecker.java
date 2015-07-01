@@ -128,15 +128,16 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			
 			// open scope (add local variables)
 			this.variables.openScope(((FunctionContext) child), true);
-			for(ArgumentContext arg : ((FunctionContext) child).argument()) {
-				// arg is already visitited in visitFunction
-				this.variables.add(arg, this.types.get(arg));
-			}
+
 			// add 'this' if the function is a method
 			if (isMethod && classType != null) {
 				this.variables.addMethodThis(classType);
 			}
 			
+			for(ArgumentContext arg : ((FunctionContext) child).argument()) {
+				// arg is already visitited in visitFunction
+				this.variables.add(arg, this.types.get(arg));
+			}
 			// add scope to function
 			Function func = this.functions.getFunction((FunctionContext) child);
 			func.setScope(this.variables.getCurrentScope());
@@ -292,13 +293,14 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			addError("Function " + ctx.ID().getText() + " does not return properly", ctx);
 		}
 		
-		Type[] argTypes = new Type[ctx.argument().size()+(isClassMethod ? 1 : 0)];
+		int difference = (isClassMethod ? 1 : 0);
+		Type[] argTypes = new Type[ctx.argument().size()+difference];
 		for (int i = 0; i < ctx.argument().size(); i++) {
-			argTypes[i] = this.types.get(ctx.argument(i));
+			argTypes[i+difference] = this.types.get(ctx.argument(i));
 		}
 		// class method, first argument becomes the object reference
 		if (isClassMethod)
-			argTypes[argTypes.length-1] = Type.getClass(((ClassDefContext) ctx.parent).ID().getText());
+			argTypes[0] = Type.getClass(((ClassDefContext) ctx.parent).ID().getText());
 		
 					
 		boolean thread = (ctx.THREAD() != null);
@@ -332,11 +334,18 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	public Void visitFunctionCall(FunctionCallContext ctx) {
 		
 		// get argument types
+		int difference = (ctx.ON() != null ? 1 : 0);
 		Type[] args = new Type[ctx.expr().size()];
-		for(int i = 0; i < ctx.expr().size(); i++) {
+		for(int i = 0; i < ctx.expr().size()-difference; i++) {
 			visit(ctx.expr(i));
-			args[i] = this.types.get(ctx.expr(i));
+			args[i+difference] = this.types.get(ctx.expr(i));
 		}
+		if (difference > 0) {
+			ExprContext objCtx = ctx.expr(ctx.expr().size()-1);
+			visit(objCtx);
+			args[0] = this.types.get(objCtx);
+		}
+		
 		String name = ctx.ID().getText();
 		
 		FunctionType ftype = this.functions.getFunctionTypeByArgs(name, args, ctx.ON() != null);
