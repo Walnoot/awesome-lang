@@ -22,6 +22,7 @@ import awesome.lang.GrammarParser.BoolExprContext;
 import awesome.lang.GrammarParser.BoolTypeContext;
 import awesome.lang.GrammarParser.CharTypeContext;
 import awesome.lang.GrammarParser.ClassDefContext;
+import awesome.lang.GrammarParser.ClassTargetContext;
 import awesome.lang.GrammarParser.CompExprContext;
 import awesome.lang.GrammarParser.DeclAssignStatContext;
 import awesome.lang.GrammarParser.DeclStatContext;
@@ -41,6 +42,7 @@ import awesome.lang.GrammarParser.IntTypeContext;
 import awesome.lang.GrammarParser.LockTypeContext;
 import awesome.lang.GrammarParser.ModExprContext;
 import awesome.lang.GrammarParser.MultDivExprContext;
+import awesome.lang.GrammarParser.NewClassExprContext;
 import awesome.lang.GrammarParser.NextStatContext;
 import awesome.lang.GrammarParser.NumExprContext;
 import awesome.lang.GrammarParser.ParExprContext;
@@ -57,8 +59,10 @@ import awesome.lang.GrammarParser.TypeContext;
 import awesome.lang.GrammarParser.WhileStatContext;
 import awesome.lang.GrammarParser.WriteStatContext;
 import awesome.lang.checking.FunctionTable.Function;
+import awesome.lang.model.Scope;
 import awesome.lang.model.Type;
 import awesome.lang.model.Type.ArrayType;
+import awesome.lang.model.Type.ClassType;
 import awesome.lang.model.Type.EnumType;
 import awesome.lang.model.Type.FunctionType;
 
@@ -193,6 +197,23 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	
 	@Override
 	public Void visitClassDef(ClassDefContext ctx) {
+		String name = ctx.ID().getText();
+		if (Type.classExists(name)) {
+			this.addError("Redefined class with name "+name+" in expression: {expr}", ctx);
+		} else {
+			// create class
+			ClassType cls = Type.newClass(name);
+			this.variables.openScope(ctx, true);
+			cls.setScope(this.variables.getCurrentScope());
+			
+			// define all properties
+			for (int i = 0; i < ctx.declStat().size(); i++) {
+				visit(ctx.declStat(i));
+			}
+			
+			// close scope again (can still be accessed through Type.getClass(name).getScope()
+			this.variables.closeScope();
+		}
 		return null;
 	}
 	
@@ -596,6 +617,19 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	}
 	
 	@Override
+	public Void visitNewClassExpr(NewClassExprContext ctx) {
+		String name = ctx.ID().getText();
+		if (Type.classExists(name) == false) {
+			 this.addError("Using an undefined class in expression: {expr}", ctx);
+			 this.types.put(ctx, Type.BOOL); // default value
+		}
+		else {
+			this.types.put(ctx, Type.getClass(name));
+		}
+		return null;
+	}
+	
+	@Override
 	public Void visitEnumExpr(EnumExprContext ctx) {
 		String name  = ctx.ID(0).getText();
 		String value = ctx.ID(1).getText();
@@ -639,28 +673,6 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	}
 	
 	@Override
-	public Void visitArrayTarget(ArrayTargetContext ctx) {
-		visit(ctx.target());
-		visit(ctx.expr());
-		
-		if (this.types.get(ctx.expr()) != Type.INT) {
-			this.addError("Using a non-integer index in expression: {expr}", ctx);
-		}
-		
-		Type aType = this.types.get(ctx.target());
-		if (aType instanceof ArrayType) {
-			aType = ((ArrayType) aType).getType();
-		} else {
-			this.addError("Taking index of a non-array variable in expression: {expr}", ctx);
-		}
-		if (this.variables.add(ctx, aType) == false) {
-			this.variables.assign(ctx);
-		}
-		this.types.put(ctx, aType);
-		return null;
-	}
-	
-	@Override
 	public Void visitArrayValueExpr(ArrayValueExprContext ctx) {
 		visit(ctx.expr(0));
 		Type cmp = this.types.get(ctx.expr(0));
@@ -693,6 +705,51 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	public Void visitStringExpr(StringExprContext ctx) {
 		types.put(ctx, Type.array(Type.CHAR));
 		
+		return null;
+	}
+
+	@Override
+	public Void visitArrayTarget(ArrayTargetContext ctx) {
+		visit(ctx.target());
+		visit(ctx.expr());
+		
+		if (this.types.get(ctx.expr()) != Type.INT) {
+			this.addError("Using a non-integer index in expression: {expr}", ctx);
+		}
+		
+		Type aType = this.types.get(ctx.target());
+		if (aType instanceof ArrayType) {
+			aType = ((ArrayType) aType).getType();
+		} else {
+			this.addError("Taking index of a non-array variable in expression: {expr}", ctx);
+		}
+		if (this.variables.add(ctx, aType) == false) {
+			this.variables.assign(ctx);
+		}
+		this.types.put(ctx, aType);
+		return null;
+	}
+	
+	@Override
+	public Void visitClassTarget(ClassTargetContext ctx) {
+		visit(ctx.target());
+		Type type = this.types.get(ctx.target());
+		if (type instanceof ClassType == false) {
+			this.addError("Cannot get a field of a non-class type in expression: {expr}", ctx);
+			this.types.put(ctx, Type.BOOL); // default type
+		}
+		else {
+			Scope scope = ((ClassType) type).getScope();
+			String property = ctx.ID().getText();
+			if (scope.containsKey(property) == false) {
+				this.addError("Field does not exist in the given class in expression: {expr}", ctx);
+				this.types.put(ctx, Type.BOOL); // default type
+			} else {
+				Type newType = scope.getType(property);
+				this.types.put(ctx, newType);
+				this.variables.add(ctx, newType, scope);
+			}
+		}
 		return null;
 	}
 	
