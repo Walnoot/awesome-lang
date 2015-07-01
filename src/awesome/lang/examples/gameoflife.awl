@@ -1,0 +1,80 @@
+int width = 8;
+int height = 8;
+
+[int] buf1;
+[int] buf2;
+
+setup(): {
+	buf1 = int[width * height];
+	buf2 = int[width * height];
+
+	setValue(buf1, 2, 1, 1);
+	setValue(buf1, 3, 2, 1);
+	setValue(buf1, 1, 3, 1);
+	setValue(buf1, 2, 3, 1);
+	setValue(buf1, 3, 3, 1);
+}
+
+int getValue([int] field, int x, int y): {
+	if(x < 0) return 0;
+	if(y < 0) return 0;
+	if(x >= width) return 0;
+	if(y >= height) return 0;
+	return field[x + (y * width)];
+}
+
+setValue([int] field, int x, int y, int value): {
+	field[x + (y * width)] = value;
+}
+
+step([int] in, [int] out): {
+	for(int x = 0; x < width; x=x+1) {
+		for(int y = 0; y < width; y=y+1) {
+			int total = 0;
+
+			for(int i = x-1; i <= x+1; i=i+1) {
+				for(int j = y-1; j <= y+1; j=j+1) {
+					if(not (i==x and j==y))
+						total = total + getValue(in, i, j);
+				}
+			}
+
+			if(getValue(in, x, y) == 1){
+				//this cell lives
+				if(total < 2) setValue(out, x, y, 0);
+				else if(total <= 3) setValue(out, x, y, 1);
+				else setValue(out, x, y, 0);
+			} else {
+				if(total == 3) setValue(out, x, y, 1);
+				else setValue(out, x, y, 0);
+			}
+		}
+	}
+}
+
+printField([int] field): {
+	print("field:\n");
+	for(int j = 0; j < width * height; j=j+1) {
+		if(field[j] == 1) print("X ");
+		else print("  ");
+		//print(field[j]);
+		//print(" ");
+		if(j mod width == width - 1) print("\n");
+	}
+}
+
+run(): {
+	printField(buf1);
+	for(int i=0; i < 8; i=i+1){
+		if(i mod 2 == 0){
+			step(buf1, buf2);
+			printField(buf2);
+		}else{
+			step(buf2, buf1);
+			printField(buf1);
+		}
+	}
+}
+
+setup();
+run();

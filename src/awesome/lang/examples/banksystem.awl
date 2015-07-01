@@ -1,0 +1,33 @@
+int balance = 700;
+lock balanceLock;
+
+addToBalance(int amount): {
+	acquire balanceLock;
+	
+	int newBalance = balance + amount;
+	balance = newBalance;
+	
+	release balanceLock;
+	
+	return newBalance;
+}
+
+thread consumer1(): {
+	addToBalance(100);
+	addToBalance(-100);
+}
+
+thread consumer2(): {
+	addToBalance(30);
+	addToBalance(-100);
+}
+
+thread consumer3(): {
+	addToBalance(-30);
+	addToBalance(-70);
+}
+
+//start threads in parallel
+consumer1();
+consumer2();
+consumer3();

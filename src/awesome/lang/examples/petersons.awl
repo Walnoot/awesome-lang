@@ -1,0 +1,35 @@
+[bool] flag = [false, false];
+int turn = 0;
+
+thread p0(): {
+	for(int i = 0; i < 5; i=i+1) {
+		flag[0] = true;
+		turn = 1;
+		while(flag[1] and turn == 1){}
+		
+		//write 01
+		write 48 stdio;
+		write 49 stdio;
+		
+		flag[0] = false;
+	}
+}
+
+thread p1(): {
+	for(int i = 0; i < 5; i=i+1) {
+		flag[1] = true;
+		turn = 0;
+		while(flag[0] and turn == 0){}
+		
+		//write 01
+		write 48 stdio;
+		write 49 stdio;
+		
+		flag[1] = false;
+	}
+}
+
+//the two threads run in parallel
+//should print '01' ten times if the two critical sections are not executed simultaniously
+p0();
+p1();
