@@ -149,13 +149,14 @@ public class CompilerTest {
 		testProgram("class Test {"
 					+ "	int a;"
 					+ "	int b;"
+					+ " init (int b) : { this.b = b; }"
 					+ "	int setA(int a) : {"
 					+ "		this.a = a;"
 					+ "		return 0;"
 					+ "	}"
 					+ "}"
 					+ "int setA(int a, Test b) : { b.a = a; return 1; }" 
-					+ "Test pair = new Test();"
+					+ "Test pair = new Test(10);"
 					+ "setA(5) on pair;"
 					+ "setA(5, pair);", "");
 	}

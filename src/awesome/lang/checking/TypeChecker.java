@@ -1,6 +1,7 @@
 package awesome.lang.checking;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -240,6 +241,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			
 			// delay function definition and execution
 			for (FunctionContext child : ctx.function()) {
+//				System.out.println(name + "." + child.ID().getText() + " is added to call list");
 				this.cUnit.add(child);
 			}
 			
@@ -318,12 +320,13 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		String name  	   = ctx.ID().getText(); 
 		if (this.functions.containsWithArgs(name, fType)) {
 			this.addError("Double function definition with the same arguments in expression: {expr}", ctx);
-		} else if (name.equals(CONSTRUCTOR) && isClassMethod && Type.VOID.equals(fType.getReturnType())) {
+		} else if (name.equals(CONSTRUCTOR) && isClassMethod && Type.VOID.equals(fType.getReturnType()) == false) {
 			this.addError("A constructor should be a void, in expression: {expr}", ctx);
 		} else {
 			this.functions.addFunction(name, fType, thread);
 		}
 		
+//		System.out.println("Added function " + ctx.ID().getText() + " with parameters " + Arrays.toString(argTypes));
 		this.functions.addContextToFunction(ctx, fType);
 		
 		// restore scope (only if swapped?)
@@ -689,7 +692,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	@Override
 	public Void visitNewObjectExpr(NewObjectExprContext ctx) {
 		visit(ctx.newObject());
-		this.types.put(ctx, this.types.get(ctx.newObject()));
+		Type type = this.types.get(ctx.newObject());
+		this.types.put(ctx, type);
+		
 		return null;
 	}
 	
@@ -704,20 +709,21 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			ClassType cType = Type.getClass(name);
 			this.types.put(ctx, cType);
 			
+			
 			// argument validation
 			Type[] args = new Type[ctx.expr().size()+1];
 			for(int i = 0; i < ctx.expr().size(); i++) {
 				visit(ctx.expr(i));
-				args[i] = this.types.get(ctx.expr(i));
+				args[i+1] = this.types.get(ctx.expr(i));
 			}
 			args[0] = cType;
-			
-			FunctionType ftype = this.functions.getFunctionTypeByArgs(name, args, true);
+//			System.out.println("Calling init of " + name + " with parameters " + Arrays.toString(args));
+			FunctionType ftype = this.functions.getFunctionTypeByArgs("init", args, true);
 			if (ftype == null && args.length > 1) {
 				this.addError("Function call to unknown constructor in expression: {expr}", ctx);
 			} else {
 				if (ftype != null) {
-					this.types.put(ctx, ftype.getReturnType());
+					this.types.put(ctx, cType);
 					this.functions.addContextToFunction(ctx, ftype);
 				}
 			}
