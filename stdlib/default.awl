@@ -15,7 +15,7 @@ lock printlock;
 //converts num to decimal and writes it to stdout
 int stdio = 16777216;
 print(int num): {
-	acquire printlock;
+	
 	[int] chars = int[12];
 	int i = 0;
 	bool neg = num < 0;
@@ -32,6 +32,7 @@ print(int num): {
 		}
 	}
 	
+	acquire printlock;
 	if(neg){
 		//output '-'
 		write (45) stdio;
