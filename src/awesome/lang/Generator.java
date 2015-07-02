@@ -947,8 +947,6 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 			callConstructor(func, regs.get(ctx), ctx.expr());
 		}
 		
-		System.out.println(func);
-		
 		return instr;
 	}
 	

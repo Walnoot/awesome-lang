@@ -22,6 +22,9 @@ public class SymbolTable{
 	private final ArrayList<Scope> declarations = new ArrayList<Scope>();
 	private final HashMap<ParserRuleContext, Scope> contextmap = new HashMap<ParserRuleContext, Scope>();
 	
+	/**
+	 * Constructor, enter the global scope.
+	 */
 	public SymbolTable() {
 		// outer scope
 		this.declarations.add(new Scope(null, null, true));
@@ -49,15 +52,23 @@ public class SymbolTable{
 		return retValue;
 	}
 	
+	/**
+	 * Returns the current visiting scope 
+	 */
 	public Scope getCurrentScope() {
 		return this.declarations.get(this.declarations.size()-1);
 	}
 	
-	/** Adds a next deeper scope level. */
+	/** 
+	 * Adds a next, deeper scope level and sets the provided parserrulecontext as its identifier
+	 */
 	public void openScope(ParserRuleContext ctx) {
 		this.openScope(ctx, false);
 	}
-
+	
+	/**
+	 * Adds a next, deeper scope level and sets the provided parserrulecontext as its identifier. The offsetcounter can be reset via te second parameter, which is usefull for function and class definitions
+	 */
 	public void openScope(ParserRuleContext ctx, boolean resetOffset) {
 		declarations.add(new Scope(ctx, this.getCurrentScope(), resetOffset));
 	}
@@ -77,9 +88,8 @@ public class SymbolTable{
 		
 	}
 
-	/** Tries to declare a given identifier in the deepest scope level.
-	 * @return <code>true</code> if the identifier was added,
-	 * <code>false</code> if it was already declared in this scope.
+	/**
+	 *  Tries to add a given variable in the deepest scope level.
 	 */
 	public boolean add(DeclAssignStatContext ctx, Type type) {
 		
@@ -92,6 +102,10 @@ public class SymbolTable{
 		return success;
 		
 	}
+	
+	/**
+	 *  Tries to add a given variable in the deepest scope level.
+	 */
 	public boolean add(DeclStatContext ctx, Type type) {
 		
 		boolean success = this.getCurrentScope().add(ctx.ID().getText(), type);
@@ -102,20 +116,29 @@ public class SymbolTable{
 		
 		return success;
 	}
-	// only add type, do not compute offset!
+	
+	/**
+	 *  Tries to assign a target with a type to the deepest scope level, but does not change the offet. This does not really define a new variable, but this method is rather made to allow the generator to easily find the type of its target.
+	 */
 	public boolean add(ArrayTargetContext ctx, Type type) {
 		boolean success = this.getCurrentScope().add(ctx.getText(), type, false);
 		this.contextmap.put(ctx,  this.getCurrentScope());
 		return success;
 	}
-	// only add type, do not compute offset!
+	
+	/**
+	 * Tries to assign a target with a type to the deepest scope level, but does not change the offet. This does not really define a new variable, but this method is rather made to allow the generator to easily find the type of its target.
+	 */
 	public boolean add(ClassTargetContext ctx, Type type, Scope scope) {
 		
 		boolean success = scope.add(ctx.getText(), type, false);
 		this.contextmap.put(ctx,  scope);
 		return success;
 	}
-
+	
+	/**
+	 * Tries to add a given variable in the deepest scope level.
+	 */
 	public boolean add(ArgumentContext ctx, Type type) {
 
 		boolean success = this.getCurrentScope().add(ctx.ID().getText(), type);
@@ -126,15 +149,15 @@ public class SymbolTable{
 		return success;
 		
 	}
-	
+	/**
+	 * Adds the this-argument to a method, in the current scope
+	 */
 	public boolean addMethodThis(ClassType type) {
 		return this.getCurrentScope().add("this", type);
 	}
 	
 	/**
 	 * binds an assignment context to the same scope as the variable definition, fails if variable has not yet been defined
-	 * @param ctx
-	 * @return
 	 */
 	public boolean assign(AssignStatContext ctx) {
 		
@@ -150,18 +173,23 @@ public class SymbolTable{
 		return assign(ctx, ((IdTargetContext) target).ID().getText());
 	}
 
+	/**
+	 * binds an assignment context to the same scope as the variable definition, fails if variable has not yet been defined
+	 */
 	public boolean assign(IdTargetContext ctx) {
 		return assign(ctx, ctx.ID().getText());
 	}
 	
+	/**
+	 * binds an assignment context to the same scope as the variable definition, fails if variable has not yet been defined
+	 */
 	public boolean assign(ArrayTargetContext ctx){
 		return assign(ctx, ctx.getText());
 	}
 	
-//	public boolean assign(TargetExprContext ctx) {
-//		return assign(ctx, ctx.ID().getText());
-//	}
-	
+	/**
+	 * binds an assignment context to the same scope as the variable definition, fails if variable has not yet been defined.
+	 */
 	private boolean assign(ParserRuleContext ctx, String id) {
 		Scope current = this.getCurrentScope();
 		do {
@@ -174,9 +202,8 @@ public class SymbolTable{
 		return false;
 	}
 
-	/** Tests if a given identifier is in the scope of any declaration.
-	 * @return <code>true</code> if there is any enclosing scope in which
-	 * the identifier is declared; <code>false</code> otherwise.
+	/**
+	 * Tests if a given identifier is in the scope of any declaration.
 	 */
 	public boolean contains(String id) {
 		
@@ -188,6 +215,10 @@ public class SymbolTable{
 		
 		return false;
 	}
+	
+	/**
+	 * Tests if a given identifier is in the scope of any declaration.
+	 */
 	public boolean contains(ParserRuleContext ctx) {
 		if (this.contextmap.containsKey(ctx) == false)
 			return false;
@@ -208,10 +239,8 @@ public class SymbolTable{
 	}
 
 	/**
-	 * 
+	 * Gets the type of a given identifier  
 	 * @throws IllegalArgumentException If variable is not found
-	 * @param id
-	 * @return
 	 */
 	public Type getType(String id) {
 		
@@ -224,22 +253,45 @@ public class SymbolTable{
 		throw new IllegalArgumentException("Variable not found!");
 		
 	}
-
+	
+	/**
+	 * Gets the type of a given identifier 
+	 */
 	private Type getType(ParserRuleContext ctx, String id) {
 		return this.contextmap.get(ctx).getType(id);
 	}
+	
+	/**
+	 * Gets the type of a given identifier
+	 */
 	public Type getType(DeclStatContext ctx) {
 		return this.getType(ctx, ctx.ID().getText());
 	}
+	
+	/**
+	 * Gets the type of a given identifier
+	 */
 	public Type getType(DeclAssignStatContext ctx) {
 		return this.getType(ctx, ctx.ID().getText());
 	}
+	
+	/**
+	 * Gets the type of a given identifier
+	 */
 	public Type getType(IdTargetContext ctx) {
 		return this.getType(ctx, ctx.ID().getText());
 	}
+	
+	/**
+	 * Gets the type of a given identifier
+	 */
 	public Type getType(ArrayTargetContext ctx) {
 		return this.getType(ctx, ctx.getText());
 	}
+	
+	/**
+	 * Gets the type of a given identifier
+	 */
 	public Type getType(AssignStatContext ctx) {
 		TargetContext target = ctx.target();
 		while(target instanceof ArrayTargetContext) {
@@ -250,11 +302,8 @@ public class SymbolTable{
 	}
 
 	/**
-	 * 
+	 * Gets the offset of a given identifier
 	 * @throws IllegalArgumentException if variable is not found
-	 * @param ctx
-	 * @param id
-	 * @return
 	 */
 	private int getOffset(ParserRuleContext ctx, String id) {
 		
@@ -264,15 +313,31 @@ public class SymbolTable{
 		return this.contextmap.get(ctx).getOffset(id);
 		
 	}
+	
+	/**
+	 * Gets the offset of a given identifier
+	 */
 	public int getOffset(DeclStatContext ctx) {
 		return this.getOffset(ctx, ctx.ID().getText());
 	}
+	
+	/**
+	 * Gets the offset of a given identifier
+	 */
 	public int getOffset(DeclAssignStatContext ctx) {
 		return this.getOffset(ctx, ctx.ID().getText());
 	}
+	
+	/**
+	 * Gets the offset of a given identifier
+	 */
 	public int getOffset(IdTargetContext ctx) {
 		return this.getOffset(ctx, ctx.ID().getText());
 	}
+	
+	/**
+	 * Gets the offset of a given identifier
+	 */
 	public int getOffset(AssignStatContext ctx) {
 		
 		TargetContext target = ctx.target();
@@ -283,6 +348,9 @@ public class SymbolTable{
 		return this.getOffset(ctx, ((IdTargetContext) target).ID().getText());
 	}
 	
+	/**
+	 * Gets the offset of a given identifier
+	 */
 	public int getOffset(String id){
 
 		for (int i = declarations.size()-1; i >= 0; i--) {
@@ -295,16 +363,25 @@ public class SymbolTable{
 		
 	}
 
+	/**
+	 * Returns whether the given identifier is declared in the global scope. 
+	 */
 	public boolean isGlobal(ParserRuleContext var){
 		Scope scope = contextmap.get(var);
 			
 		return scope.isGlobal();
 	}
 	
+	/**
+	 * Gets the scope, that has beeen created because of the given classcontext
+	 */
 	public Scope getClassScope(ClassTargetContext ctx) {
 		return this.contextmap.get(ctx);
 	}
-	
+
+	/**
+	 * Gets the scope in which the provided idtargetcontext has been defined
+	 */
 	public Scope getScope(IdTargetContext ctx) {
 		return this.contextmap.get(ctx);
 	}
