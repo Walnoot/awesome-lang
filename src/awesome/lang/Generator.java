@@ -950,6 +950,11 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		return instr;
 	}
 	
+	@Override
+	public Instruction visitCharExpr(CharExprContext ctx) {
+		return prog.addInstr(OpCode.Const, (int) Util.extractChar(ctx.CHARLITERAL()), newReg(ctx));
+	}
+	
 	private Reg newReg(ParserRuleContext ctx) {
 		Reg reg = newReg();
 		regs.put(ctx, reg);

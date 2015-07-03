@@ -11,7 +11,6 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import awesome.lang.GrammarParser.ProgramContext;
 
 public class Util {
-	
 	/**
 	 * change escaped string to actual values 
 	 */
@@ -28,25 +27,7 @@ public class Util {
 			char chr = content.charAt(i);
 			
 			if (escaping) {
-				switch (chr) {
-				case 't':
-					builder.append('\t');
-					break;
-				case 'r':
-					builder.append('\r');
-					break;
-				case 'n':
-					builder.append('\n');
-					break;
-				case '\\':
-					builder.append('\\');
-					break;
-				case '"':
-					builder.append('"');
-					break;
-				default:
-					throw new IllegalArgumentException("Unknown escape character: '" + chr + "'");
-				}
+				builder.append(getEscapedChar(chr));
 				
 				escaping = false;
 			} else {
@@ -60,9 +41,41 @@ public class Util {
 		return builder.toString();
 	}
 	
-	/**
-	 *  Change a charstream into the programcontext
-	 */
+	public static char extractChar(TerminalNode chr) {
+		if (chr.getSymbol().getType() != GrammarLexer.CHARLITERAL) {
+			throw new IllegalArgumentException("Supplied token is not a char token. ");
+		}
+		
+		String content = chr.getText().substring(1, chr.getText().length() - 1);
+		
+		if(content.length() == 1) {
+			//unescaped char
+			return content.charAt(0);
+		} else {
+			//escaped char
+			return getEscapedChar(content.charAt(1));
+		}
+	}
+	
+	private static char getEscapedChar(char c) {
+		switch (c) {
+		case 't':
+			return '\t';
+		case 'r':
+			return '\r';
+		case 'n':
+			return '\n';
+		case '\\':
+			return '\\';
+		case '"':
+			return '"';
+		case '0':
+			return (char) 0;
+		default:
+			throw new IllegalArgumentException("Unknown escape character: '" + c + "'");
+		}
+	}
+	
 	public static ProgramContext parseProgram(CharStream stream) {
 		GrammarLexer lexer = new GrammarLexer(stream);
 		ErrorListener listener = new ErrorListener();

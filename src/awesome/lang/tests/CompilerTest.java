@@ -95,6 +95,7 @@ public class CompilerTest {
 	@Test
 	public void testEnums() throws IOException, InterruptedException, CompilationException {
 		testProgram("enum pers { michiel, jacco} if (pers:michiel != pers:jacco) { print(1); }","1");
+		testProgram("enum pers { michiel, jacco} pers x = pers:michiel; if(x == pers:michiel) print(1);","1");
 		testProgram("room location = room:basement; "
 				  + "enum room { kitchen, livingroom, basement } "
 				  + "switch(location) {"
@@ -121,6 +122,15 @@ public class CompilerTest {
 		testProgram("print(\"abc\\n\");", "abc\n");
 	}
 
+	@Test
+	public void testChars() throws IOException, InterruptedException, CompilationException {
+		testProgram("[char] x = \"abc\"; x[0] = 'c'; print(x);", "cbc");
+		testProgram("[char] x = \"abc\"; x[0] = '\\n'; print(x);", "\nbc");
+		
+		// '\0' marks end of string
+		testProgram("[char] x = \"aaaaa\"; x[3] = '\\0'; print(x);", "aaa");
+	}
+	
 	@Test
 	public void testFunctionsTypecheck() throws IOException, InterruptedException, CompilationException {
 		testProgram("int i = 1; int add(int a, bool b, int c):{ i = a; return 5; }","");
@@ -223,7 +233,7 @@ public class CompilerTest {
 			
 			throw e;
 		}
-		
+
 		Process process = Runtime.getRuntime().exec("ghc -isprockell/src gen/test.hs -e main");
 
 		String output = getOutput(process.getInputStream());
