@@ -78,6 +78,7 @@ expr: prefixOp expr					#prefixExpr
 	| type LSB expr RSB				#arrayLengthExpr
 	| newObject						#newObjectExpr
 	| STRING						#stringExpr
+	| CHARLITERAL					#charExpr
 	;
 
 /** Prefix operator. */

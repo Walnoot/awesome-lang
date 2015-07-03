@@ -59,6 +59,7 @@ AND: 'and';
 OR: 'or';
 NOT: 'not';
 
+CHARLITERAL: '\'' (~('\'' | '\\') | '\\'.) '\'';
 STRING: '"' (~'"' | '\\"')* '"';
 
 ID: LETTER (LETTER | DIGIT)*;
