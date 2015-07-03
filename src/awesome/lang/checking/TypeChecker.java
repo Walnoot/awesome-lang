@@ -849,10 +849,27 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 				args[i+1] = this.types.get(ctx.expr(i));
 			}
 			args[0] = cType;
+			
+			// check whether there exists an constructor
+			List<Function> funcs = this.functions.getFunctions("init");
+			boolean hasConstructor = false;
+			if (funcs != null) {
+				for(Function func : funcs) {
+					Type[] arguments = func.getFunctionType().getArguments();
+					if (arguments.length > 0 && arguments[0].equals(cType)) {
+						hasConstructor = true;
+						break;
+					}
+				}
+			}
+			
+			
 //			System.out.println("Calling init of " + name + " with parameters " + Arrays.toString(args));
 			FunctionType ftype = this.functions.getFunctionTypeByArgs("init", args, true);
 			if (ftype == null && args.length > 1) {
 				this.addError("Function call to unknown constructor in expression: {expr}", ctx);
+			} if(ftype == null && hasConstructor) {
+				this.addError("You need to call a constructor, if one exists, in expression: {expr}", ctx);
 			} else {
 				if (ftype != null) {
 					this.types.put(ctx, cType);
