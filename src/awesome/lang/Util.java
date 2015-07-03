@@ -11,6 +11,10 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import awesome.lang.GrammarParser.ProgramContext;
 
 public class Util {
+	
+	/**
+	 * change escaped string to actual values 
+	 */
 	public static String extractString(TerminalNode string) {
 		if (string.getSymbol().getType() != GrammarLexer.STRING) {
 			throw new IllegalArgumentException("Supplied token is not a string token. ");
@@ -56,6 +60,9 @@ public class Util {
 		return builder.toString();
 	}
 	
+	/**
+	 *  Change a charstream into the programcontext
+	 */
 	public static ProgramContext parseProgram(CharStream stream) {
 		GrammarLexer lexer = new GrammarLexer(stream);
 		ErrorListener listener = new ErrorListener();

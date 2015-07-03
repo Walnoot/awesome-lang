@@ -40,6 +40,9 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 		attemptImport(filePath);
 	}
 	
+	/**
+	 * Starts finding imports in the main program, imports the standard library
+	 */
 	public ImportResolver(String program) {
 		//search relative to working directory
 		mainDir = Paths.get("/");
@@ -48,10 +51,16 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 		visitProgram(Util.parseProgram(new ANTLRInputStream(program)));
 	}
 	
+	/**
+	 * Import the standardlibrary
+	 */
 	private void importDefault() {
 		attemptImport(Paths.get("stdlib", "default.awl"));
 	}
 	
+	/**
+	 * Visits the program and loads all imports, caches all children in contextDataset
+	 */
 	@Override
 	public Void visitProgram(ProgramContext ctx) {
 		for (ImprtContext imprt : ctx.imprt()) {
@@ -78,6 +87,9 @@ public class ImportResolver extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Try to read the file and import it 
+	 */
 	private boolean attemptImport(Path path) {
 		File file = path.toFile();
 		

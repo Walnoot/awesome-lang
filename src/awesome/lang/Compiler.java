@@ -14,14 +14,24 @@ import awesome.lang.model.Type;
  * Combines ImportResolver, Typechecker and Generator
  */
 public class Compiler {
+	
+	/**
+	 * Compiles a program by String path 
+	 */
 	public Program compile(String program) throws CompilationException {
 		return build(new ImportResolver(program));
 	}
 	
+	/**
+	 * Compiles a program by Path-object path 
+	 */
 	public Program compile(Path path) throws CompilationException {
 		return build(new ImportResolver(path));
 	}
 
+	/**
+	 * Compiles a program, based on the given importresolver 
+	 */
 	private Program build(ImportResolver resolver) throws CompilationException {
 		CompilationUnit cUnit = resolver.getContextDataSet();
 		
@@ -52,6 +62,9 @@ public class Compiler {
 		}
 	}
 	
+	/**
+	 * compile the example or program, defined by the given arguments. 
+	 */
 	public static void main(String[] args) throws CompilationException, IOException {
 		if(args[0].equals("ex")) {
 			new Compiler().compile(Paths.get("src/awesome/lang/examples/", args[1])).writeSprockell("example.hs");
