@@ -10,9 +10,9 @@ block: LCB stat* RCB;
 
 stat: varSubStat SEMI										#varStat
 	| IF LB expr RB stat  (ELSE stat)?						#ifStat
-	| WHILE LB expr RB stat									#whileStat // break?
-	| FOR LB varSubStat SEMI expr SEMI varSubStat RB stat	#forStat   // break?
-	| DO stat WHILE LB expr RB SEMI							#doStat    // break?
+	| WHILE LB expr RB stat									#whileStat 
+	| FOR LB varSubStat SEMI expr SEMI varSubStat RB stat	#forStat   
+	| DO stat WHILE LB expr RB SEMI							#doStat       			 
 	| SWITCH LB expr RB LCB (CASE expr block)* (DEFAULT block)? RCB	#switchStat
 	| functionCall SEMI										#funcStat
 	| WRITE expr expr SEMI									#writeStat

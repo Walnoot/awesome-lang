@@ -1,5 +1,7 @@
 package awesome.lang.checking;
 
+
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -917,6 +919,11 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	@Override
 	public Void visitCharExpr(CharExprContext ctx) {
 		this.types.put(ctx, Type.CHAR);
+		try {
+			Util.extractChar(ctx.CHARLITERAL()); 
+		}catch(IllegalArgumentException e) { 
+			this.addError(e.getMessage() + ", in expression: {expr}", ctx);
+		}
 		return null;
 	}
 
@@ -984,11 +991,17 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	}
 	
 	/**
-	 * Sets the type to char-array
+	 * Sets the type to char-array. Errors if an invalid string notation is used.	
 	 */
 	@Override
 	public Void visitStringExpr(StringExprContext ctx) {
 		types.put(ctx, Type.array(Type.CHAR));
+		
+		try {
+			Util.extractString(ctx.STRING()); 
+		}catch(IllegalArgumentException e) { 
+			this.addError(e.getMessage() + ", in expression: {expr}", ctx);
+		}
 		
 		return null;
 	}
