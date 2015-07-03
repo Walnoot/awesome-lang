@@ -79,6 +79,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	private Boolean inSwitch			  = Boolean.FALSE;
 	private CompilationUnit cUnit;
 
+	/**
+	 * Adds an error-message, which prevents the compiler from generating actual code. Replaces {expr} with the text of the context.
+	 */
 	private void addError(String string, ParserRuleContext ctx) {
 		
 		Token token = ctx.getStart();
@@ -86,19 +89,32 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		this.errors.add(error + " (line "+token.getLine() + ":" + token.getCharPositionInLine() + ")");
 		
 	}
-
+	
+	/**
+	 * Returns a list of all found errors
+	 */
 	public ArrayList<String> getErrors() {
 		return new ArrayList<String> (this.errors);
 	}
-
+	
+	/**
+	 * Returns the symboltable 
+	 */
 	public SymbolTable getSymbolTable() {
 		return variables;
 	}
+	
+	/**
+	 * Returns the functiontable 
+	 */
 	public FunctionTable getFunctionTable() {
 		return functions;
 	}
 	
-	// execute source elements in the order: 
+	/**
+	 * The method to call, which starts typechecking and traverses all elements. The order of traversal makes sure that first all definitions of enums, classes and functions are loaded, before any actual statements are checked.
+	 * This function exists because in this way all imported files can be put together in a single check.
+	 */
 	public void checkProgram(CompilationUnit cUnit) {
 		this.cUnit = cUnit;
 		// enum definitions
@@ -168,6 +184,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		}
 	}
 	
+	/**
+	 * Checks whether the lock trying to acquire actually exists
+	 */
 	@Override
 	public Void visitAcquireStat(AcquireStatContext ctx) {
 		
@@ -178,6 +197,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Checks whether the lock trying to release actually exists
+	 */
 	@Override
 	public Void visitReleaseStat(ReleaseStatContext ctx) {
 		
@@ -188,6 +210,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Checks whether the type of the returnstatement resembles the type of the function and if the statement is actually placed inside a fucntion 
+	 */
 	@Override
 	public Void visitReturnStat(ReturnStatContext ctx) {
 		
@@ -204,23 +229,35 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 
+	/**
+	 * Creates a new scope and visit all inner statements. If the blockcontext is added to this.blockNewScope, the creation of the new scope is omitted
+	 */
 	@Override
 	public Void visitBlock(BlockContext ctx) {
-		//handles null as well
-		if (Boolean.TRUE.equals(this.blockNewScope.get(ctx)))
-			return null;
 		
-		this.variables.openScope(ctx);
+		boolean openScope = true;
+		
+		// some parent signalled to not create new scope
+		if (Boolean.TRUE.equals(this.blockNewScope.get(ctx)))
+			openScope = false;
+		
+		if(openScope)
+			this.variables.openScope(ctx);
 		
 		for(StatContext stat : ctx.stat()) {
 			visit(stat);
 		}
 		
-		this.variables.closeScope();
+		if (openScope)
+			this.variables.closeScope();
 		
 		return null;
 	}
 	
+	/**
+	 * Defines a new class, the definition of its method is delayed through adding those to the compilerunit.
+	 * Errors when redefining the class with the same name, or with a name of an enum.
+	 */
 	@Override
 	public Void visitClassDef(ClassDefContext ctx) {
 		String name = ctx.ID().getText();
@@ -251,6 +288,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Creates a new enum, errors if the same name is used twice, or when a name of a class is used.
+	 */
 	@Override
 	public Void visitEnumDef(EnumDefContext ctx) {
 		// get name+values
@@ -272,6 +312,10 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Registers a new function in the function-table, the evaluation of the actual statements are delayed until after all functions are defined and this is managed by checkProgram()
+	 * Errors occur if the return-statements are invalid, if not all paths in a non-void function do have a return statement or when threads or constructors have a return statement.
+	 */
 	@Override 
 	public Void visitFunction(FunctionContext ctx) {
 		
@@ -289,6 +333,8 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		if(typeExpr != null) visit(typeExpr);
 		for (ArgumentContext child : ctx.argument()) {
 			visit(child);
+			if (child.ID().getText().equals("this") && isClassMethod)
+				addError("Cannot use 'this' as a parameter of a class method, in expression {expr}", ctx);
 		}
 		
 		Type retType = typeExpr == null ? Type.VOID : this.types.get(typeExpr);
@@ -336,7 +382,10 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		
 		return null;
 	}
-
+	
+	/**
+	 * Checks a call to a function, errors if the function is not found in the functiontable
+	 */
 	@Override
 	public Void visitFunctionCall(FunctionCallContext ctx) {
 		
@@ -365,6 +414,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Sets the type of the function argument
+	 */
 	@Override 
 	public Void visitArgument(ArgumentContext ctx) {
 		visit(ctx.type());
@@ -372,24 +424,36 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Detects the int-type
+	 */
 	@Override
 	public Void visitIntType(IntTypeContext ctx) {
 		types.put(ctx, Type.INT);
 		return null;
 	}
 	
+	/**
+	 * Detects the bool-type
+	 */
 	@Override
 	public Void visitBoolType(BoolTypeContext ctx) {
 		types.put(ctx, Type.BOOL);
 		return null;
 	}
 	
+	/**
+	 * Detects the char-type
+	 */
 	@Override
 	public Void visitCharType(CharTypeContext ctx) {
 		types.put(ctx, Type.CHAR);
 		return null;
 	}
 	
+	/**
+	 * Detects the Lock-type, if it is used outside global scope an error is triggered.
+	 */
 	@Override
 	public Void visitLockType(LockTypeContext ctx) {
 		types.put(ctx, Type.LOCK);
@@ -400,6 +464,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Checks class or enum type, if the name does not exists it triggers an error.
+	 */
 	@Override
 	public Void visitEnumOrClassType(EnumOrClassTypeContext ctx) {
 		String name = ctx.ID().getText();
@@ -415,6 +482,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Sets the type to an array(undefined length, of course) of its child-type.
+	 */
 	@Override
 	public Void visitArrayType(ArrayTypeContext ctx) {
 		visit(ctx.type());
@@ -424,6 +494,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 
+	/**
+	 * Declares a variable and assigns a value, checks whether the type of the expression equals the type of the variable and if the variable is not already declared in the same scope.
+	 */
 	@Override // Lock support is not required here, because constraints on the equality of the type and the type of the expression. (Expression cannot become of type Lock).
 	public Void visitDeclAssignStat(DeclAssignStatContext ctx) {
 		// add new variable to scope (with value)
@@ -441,6 +514,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Declares a new variabe without initialisation(default value is some form of zero). Errors on redeclaration in the same scope
+	 */
 	@Override
 	public Void visitDeclStat(DeclStatContext ctx) {
 		// add new variable to scope (uninitialized)
@@ -452,6 +528,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 
+	/**
+	 * Assigns a value to a variable, errors if the variable type is not equal to the type of the expression.
+	 */
 	@Override 
 	public Void visitAssignStat(AssignStatContext ctx) {
 		visit(ctx.expr());
@@ -467,7 +546,10 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		}
 		return null;
 	}
-
+	
+	/**
+	 * checks the for-statement, errors if the result of the given expression is not a bool.
+	 */
 	@Override
 	public Void visitForStat(ForStatContext ctx) {
 		visit(ctx.varSubStat(0));
@@ -480,6 +562,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 
+	/**
+	 * checks the do-statement, errors if the result of the given expression is not a bool.
+	 */
 	@Override
 	public Void visitDoStat(DoStatContext ctx) {
 		visit(ctx.expr());
@@ -490,6 +575,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * checks the while-statement, errors if the result of the given expression is not a bool.
+	 */
 	@Override
 	public Void visitWhileStat(WhileStatContext ctx) {
 		visit(ctx.expr());
@@ -500,6 +588,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Visits the switch-statement, errors if any expression after a case is not of the same type as the expression of the switch-statement itself.
+	 */
 	@Override
 	public Void visitSwitchStat(SwitchStatContext ctx) {
 		visit(ctx.expr(0));
@@ -522,6 +613,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Evaluates the next-statement, errors if it occurs outside a switch-statement or inside the last case.
+	 */
 	@Override
 	public Void visitNextStat(NextStatContext ctx) {
 		if (this.inSwitch == null) {
@@ -533,6 +627,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 
+	/**
+	 * Visits the if-statement, errors if the expression does not result a bool.
+	 */
 	@Override
 	public Void visitIfStat(IfStatContext ctx) {
 		visit(ctx.expr());
@@ -545,6 +642,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Checks whether the address of the write-statement is of type int
+	 */
 	@Override
 	public Void visitWriteStat(WriteStatContext ctx) {
 		visit(ctx.expr(0));
@@ -557,6 +657,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Checks whether the read-address is of type int
+	 */
 	@Override
 	public Void visitReadExpr(ReadExprContext ctx) {
 		visit(ctx.expr());
@@ -570,6 +673,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Checks whether a not is only casted on a bool, and a unary minus is only casted on an int
+	 */
 	@Override
 	public Void visitPrefixExpr(PrefixExprContext ctx) {
 		visit(ctx.expr());
@@ -589,7 +695,10 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		}
 		return null;
 	}
-
+	
+	/**
+	 * Checks whether both subexpressions are actually boolean in AND/OR experssions 
+	 */
 	@Override
 	public Void visitBoolExpr(BoolExprContext ctx) {
 		visit(ctx.expr(0));
@@ -605,7 +714,10 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 		
 	}
-
+	
+	/**
+	 * Checks whether both types of an comparison are equal and the given comparison is defined for the types.
+	 */
 	@Override
 	public Void visitCompExpr(CompExprContext ctx) {
 		ExprContext child1 = ctx.expr(0);
@@ -615,10 +727,10 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		// valid types?
 		if (this.types.get(child1).equals(this.types.get(child2)) == false) {
 			this.addError("Comparing "+this.types.get(child1)+" with "+this.types.get(child2) + " in {expr}", ctx);
-		} else if (this.types.get(child1) == Type.INT) {
+		} else if (this.types.get(child1) == Type.INT || this.types.get(child1) == Type.CHAR) {
 			this.types.put(ctx, Type.BOOL);
 		} else if (ctx.compOp().EQ() == null && ctx.compOp().NE() == null) {// bool comparison with a wrong operand
-			this.addError("Doing an impossible comparison on two booleans: {expr}", ctx);
+			this.addError("Doing an impossible comparison on two types that do not have this comparison defined: {expr}", ctx);
 		}
 		
 		this.types.put(ctx, Type.BOOL);
@@ -626,6 +738,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		
 	}
 
+	/**
+	 * Checks whether both subexpressions are of type int
+	 */
 	@Override
 	public Void visitMultDivExpr(MultDivExprContext ctx) {
 		visit(ctx.expr(0));
@@ -642,6 +757,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		
 	}
 
+	/**
+	 * Checks whether both subexpressions are of type int
+	 */
 	@Override
 	public Void visitAddSubExpr(AddSubExprContext ctx) {
 		visit(ctx.expr(0));
@@ -658,6 +776,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		
 	}
 
+	/**
+	 * Checks whether both subexpressions are of type int
+	 */
 	@Override
 	public Void visitModExpr(ModExprContext ctx) {
 		visit(ctx.expr(0));
@@ -674,6 +795,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		
 	}
 
+	/**
+	 * Sets the return type of te function call as its value, check for boolean is handled by any parentexpression
+	 */
 	@Override
 	public Void visitFuncExpr(FuncExprContext ctx) {
 		visit(ctx.functionCall());
@@ -681,7 +805,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
-
+	/**
+	 * parenthesis, nothing to check, just pass up the type of the subexpression
+	 */
 	@Override
 	public Void visitParExpr(ParExprContext ctx) {
 		visit(ctx.expr());
@@ -689,6 +815,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Creates a new object, error detection is done bij the subexperssion(newObject)
+	 */
 	@Override
 	public Void visitNewObjectExpr(NewObjectExprContext ctx) {
 		visit(ctx.newObject());
@@ -698,6 +827,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Creates a new object, checks for undefined expressions and the call to undefined constructors. (Not calling a constructor is valid behavior though)
+	 */
 	@Override
 	public Void visitNewObject(NewObjectContext ctx) {
 		String name = ctx.ID().getText();
@@ -732,7 +864,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
-	
+	/**
+	 * Sets the type of an enum, checks whether the enum and the given value do exist.
+	 */
 	@Override
 	public Void visitEnumExpr(EnumExprContext ctx) {
 		String name  = ctx.ID(0).getText();
@@ -751,24 +885,36 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 
+	/**
+	 * Sets the type to number
+	 */
 	@Override
 	public Void visitNumExpr(NumExprContext ctx) {
 		this.types.put(ctx, Type.INT);
 		return null;
 	}
 
+	/**
+	 * Sets the type to bool
+	 */
 	@Override
 	public Void visitFalseExpr(FalseExprContext ctx) {
 		this.types.put(ctx, Type.BOOL);
 		return null;
 	}
 	
+	/**
+	 * Sets the type to bool
+	 */
 	@Override
 	public Void visitTrueExpr(TrueExprContext ctx) {
 		this.types.put(ctx, Type.BOOL);
 		return null;
 	}
 	
+	/**
+	 * sets the type, based on the type of the given target 
+	 */
 	@Override
 	public Void visitTargetExpr(TargetExprContext ctx) {
 		visit(ctx.target());
@@ -776,6 +922,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Sets the type to an array of the subexpression
+	 */
 	@Override
 	public Void visitArrayValueExpr(ArrayValueExprContext ctx) {
 		visit(ctx.expr(0));
@@ -791,6 +940,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * An index of an array, it errors if the index is not of type int.
+	 */
 	@Override
 	public Void visitArrayLengthExpr(ArrayLengthExprContext ctx) {
 		visit(ctx.type());
@@ -805,6 +957,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Sets the type to char-array
+	 */
 	@Override
 	public Void visitStringExpr(StringExprContext ctx) {
 		types.put(ctx, Type.array(Type.CHAR));
@@ -812,6 +967,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 
+	/**
+	 * checks whether an arraytarget is actually an target and assigns a value to its context in the symboltable
+	 */
 	@Override
 	public Void visitArrayTarget(ArrayTargetContext ctx) {
 		visit(ctx.target());
@@ -834,6 +992,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Checks whether the target is actually a class-field and assign a type to its context in the symboltable
+	 */
 	@Override
 	public Void visitClassTarget(ClassTargetContext ctx) {
 		visit(ctx.target());
@@ -857,6 +1018,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		return null;
 	}
 	
+	/**
+	 * Assigns a new variable to the symboltable, and assigns itself to it to allow the generator to quickly get the type of this context.
+	 */
 	@Override 
 	public Void visitIdTarget(IdTargetContext ctx) {
 		String name = ctx.ID().getText();
