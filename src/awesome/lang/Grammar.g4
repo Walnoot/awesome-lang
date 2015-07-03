@@ -52,6 +52,7 @@ functionCall: ID LB (expr (COMMA expr)*)? RB (ON expr)?;
 newObject: NEW ID LB (expr (COMMA expr)*)? RB;
  
 type: INT						#intType
+	| FLOAT						#floatType
 	| BOOL						#boolType
 	| CHAR						#charType
 	| LSB type /*COLON NUM*/ RSB#arrayType
@@ -70,6 +71,7 @@ expr: prefixOp expr					#prefixExpr
 	| target						#targetExpr
 	| READ expr						#readExpr
 	| NUM							#numExpr
+	| FLOATLITERAL					#floatExpr
 	| CHARLITERAL					#charExpr
 	| TRUE							#trueExpr
 	| FALSE							#falseExpr

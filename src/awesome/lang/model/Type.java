@@ -6,6 +6,7 @@ import java.util.HashMap;
 
 public class Type {
 	public static final Type INT = new Type(1, "int");
+	public static final Type FLOAT = new Type(1, "float");
 	public static final Type BOOL = new Type(1, "bool");
 	public static final Type CHAR = new Type(1, "char");
 	public static final Type VOID = new Type(1, "void");

@@ -35,6 +35,8 @@ import awesome.lang.GrammarParser.EnumExprContext;
 import awesome.lang.GrammarParser.EnumOrClassTypeContext;
 import awesome.lang.GrammarParser.ExprContext;
 import awesome.lang.GrammarParser.FalseExprContext;
+import awesome.lang.GrammarParser.FloatExprContext;
+import awesome.lang.GrammarParser.FloatTypeContext;
 import awesome.lang.GrammarParser.ForStatContext;
 import awesome.lang.GrammarParser.FuncExprContext;
 import awesome.lang.GrammarParser.FunctionCallContext;
@@ -90,6 +92,13 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		String error = string.replace("{expr}", "\"" + ctx.getText() + "\"");
 		this.errors.add(error + " (line "+token.getLine() + ":" + token.getCharPositionInLine() + ")");
 		
+	}
+	
+	/**
+	 * Gets a parsetreeproperty containing all the synthesized attributes 
+	 */
+	public ParseTreeProperty<Type> getExpressionTypes() {
+		return this.types;
 	}
 	
 	/**
@@ -434,6 +443,14 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		types.put(ctx, Type.INT);
 		return null;
 	}
+	/**
+	* Detects the float-type
+	*/
+	@Override
+	public Void visitFloatType(FloatTypeContext ctx) {
+		types.put(ctx, Type.FLOAT);
+		return null;
+	}
 	
 	/**
 	 * Detects the bool-type
@@ -690,7 +707,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			
 		// unary minus
 		} else {
-			if(this.types.get(ctx.expr()) != Type.INT){
+			if(this.types.get(ctx.expr()) != Type.INT && this.types.get(ctx.expr()) != Type.FLOAT){
 				this.addError("Subexpression is not of type integer in {expr}", ctx);
 			}
 			this.types.put(ctx, Type.INT);
@@ -729,7 +746,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		// valid types?
 		if (this.types.get(child1).equals(this.types.get(child2)) == false) {
 			this.addError("Comparing "+this.types.get(child1)+" with "+this.types.get(child2) + " in {expr}", ctx);
-		} else if (this.types.get(child1) == Type.INT || this.types.get(child1) == Type.CHAR) {
+		} else if (this.types.get(child1) == Type.INT || this.types.get(child1) == Type.CHAR || this.types.get(child1) == Type.FLOAT) {
 			this.types.put(ctx, Type.BOOL);
 		} else if (ctx.compOp().EQ() == null && ctx.compOp().NE() == null) {// bool comparison with a wrong operand
 			this.addError("Doing an impossible comparison on two types that do not have this comparison defined: {expr}", ctx);
@@ -748,13 +765,17 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		visit(ctx.expr(0));
 		visit(ctx.expr(1));
 		// valid types? 
-		if (this.types.get(ctx.expr(0)) != Type.INT){
-			this.addError("First child of expression: {expr} is no integer", ctx);
-		} else if (this.types.get(ctx.expr(1)) != Type.INT) {
-			this.addError("Second child of expression: {expr} is no integer", ctx);
+		if (this.types.get(ctx.expr(0)).equals(this.types.get(ctx.expr(1))) == false){
+			this.addError("Subexpressions are not of the same type in expression: {expr}", ctx);
+			this.types.put(ctx, Type.INT);
+		} else if (this.types.get(ctx.expr(0)) != Type.INT && this.types.get(ctx.expr(0)) != Type.FLOAT) {
+			this.addError("Elements of expression: {expr} is not a number (int or float)", ctx);
+			this.types.put(ctx, Type.INT);
+		} else {
+			this.types.put(ctx, this.types.get(ctx.expr(0)));
 		}
 		
-		this.types.put(ctx, Type.INT);
+		
 		return null;
 		
 	}
@@ -767,13 +788,15 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		visit(ctx.expr(0));
 		visit(ctx.expr(1));
 		// valid types?
-		if (this.types.get(ctx.expr(0)) != Type.INT){
-			this.addError("First child of expression: {expr} is no integer", ctx);
-		} else if (this.types.get(ctx.expr(1)) != Type.INT) {
-			this.addError("Second child of expression: {expr} is no integer", ctx);
+		if (this.types.get(ctx.expr(0)).equals(this.types.get(ctx.expr(1))) == false){
+			this.addError("Subexpressions are not of the same type in expression: {expr}", ctx);
+			this.types.put(ctx, Type.INT);
+		} else if (this.types.get(ctx.expr(0)) != Type.INT && this.types.get(ctx.expr(0)) != Type.FLOAT) {
+			this.addError("Elements of expression: {expr} is not a number (int or float)", ctx);
+			this.types.put(ctx, Type.INT);
+		} else {
+			this.types.put(ctx, this.types.get(ctx.expr(0)));
 		}
-		
-		this.types.put(ctx, Type.INT);
 		return null;
 		
 	}
@@ -910,6 +933,15 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	@Override
 	public Void visitNumExpr(NumExprContext ctx) {
 		this.types.put(ctx, Type.INT);
+		return null;
+	}
+
+	/**
+	 * Sets the type to float
+	 */
+	@Override
+	public Void visitFloatExpr(FloatExprContext ctx) {
+		this.types.put(ctx, Type.FLOAT);
 		return null;
 	}
 	

@@ -36,6 +36,7 @@ SEMI: ';';
 ASSIGN: '=';
 
 INT: 'int';
+FLOAT: 'float';
 BOOL: 'bool';
 CHAR: 'char';
 LOCK: 'lock';
@@ -59,6 +60,7 @@ AND: 'and';
 OR: 'or';
 NOT: 'not';
 
+FLOATLITERAL: DIGIT* DOT DIGIT+;
 CHARLITERAL: '\'' (~('\'' | '\\') | '\\'.) '\'';
 STRING: '"' (~'"' | '\\"')* '"';
 
