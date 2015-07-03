@@ -1,7 +1,6 @@
 package awesome.lang.checking;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -21,6 +20,7 @@ import awesome.lang.GrammarParser.BlockContext;
 import awesome.lang.GrammarParser.BlockStatContext;
 import awesome.lang.GrammarParser.BoolExprContext;
 import awesome.lang.GrammarParser.BoolTypeContext;
+import awesome.lang.GrammarParser.CharExprContext;
 import awesome.lang.GrammarParser.CharTypeContext;
 import awesome.lang.GrammarParser.ClassDefContext;
 import awesome.lang.GrammarParser.ClassTargetContext;
@@ -908,6 +908,15 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	@Override
 	public Void visitNumExpr(NumExprContext ctx) {
 		this.types.put(ctx, Type.INT);
+		return null;
+	}
+	
+	/**
+	 * Sets the type to char
+	 */
+	@Override
+	public Void visitCharExpr(CharExprContext ctx) {
+		this.types.put(ctx, Type.CHAR);
 		return null;
 	}
 

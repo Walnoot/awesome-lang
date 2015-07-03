@@ -70,6 +70,7 @@ expr: prefixOp expr					#prefixExpr
 	| target						#targetExpr
 	| READ expr						#readExpr
 	| NUM							#numExpr
+	| CHARLITERAL					#charExpr
 	| TRUE							#trueExpr
 	| FALSE							#falseExpr
 	| functionCall					#funcExpr
@@ -78,7 +79,6 @@ expr: prefixOp expr					#prefixExpr
 	| type LSB expr RSB				#arrayLengthExpr
 	| newObject						#newObjectExpr
 	| STRING						#stringExpr
-	| CHARLITERAL					#charExpr
 	;
 
 /** Prefix operator. */
