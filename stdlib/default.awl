@@ -34,13 +34,35 @@ print(int num): {
 	acquire printlock;
 	if(neg){
 		//output '-'
-		write (45) stdio;
+		write '-' stdio;
 	}
 	
 	for(int j = i-1; j >= 0; j = j-1){
 		write (chars[j] + 48) stdio;
 	}
 	release printlock;
+}
+
+print(bool b): {
+	if(b) print("true");
+	else print("false");
+}
+
+print(float num): {
+	//simple, one digit behind dot float to string algorithm
+	
+	if(num < 0.0) {
+		print("-");
+		num = -num;
+	}
+	
+	int base = int(num);
+	float rest = num - float(base);
+	
+	print(base);
+	print(".");
+	
+	print(int(rest * 10.0));
 }
 
 print([char] string): {

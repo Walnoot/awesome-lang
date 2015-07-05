@@ -72,6 +72,8 @@ expr: prefixOp expr					#prefixExpr
 	| READ expr						#readExpr
 	| NUM							#numExpr
 	| FLOATLITERAL					#floatExpr
+	| FLOAT LB expr RB				#floatCastExpr
+	| INT LB expr RB				#intCastExpr
 	| CHARLITERAL					#charExpr
 	| TRUE							#trueExpr
 	| FALSE							#falseExpr

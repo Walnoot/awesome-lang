@@ -1,7 +1,5 @@
 package awesome.lang.checking;
 
-
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,60 +8,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
 import awesome.lang.*;
-import awesome.lang.GrammarParser.AcquireStatContext;
-import awesome.lang.GrammarParser.AddSubExprContext;
-import awesome.lang.GrammarParser.ArgumentContext;
-import awesome.lang.GrammarParser.ArrayLengthExprContext;
-import awesome.lang.GrammarParser.ArrayTargetContext;
-import awesome.lang.GrammarParser.ArrayTypeContext;
-import awesome.lang.GrammarParser.ArrayValueExprContext;
-import awesome.lang.GrammarParser.AssignStatContext;
-import awesome.lang.GrammarParser.BlockContext;
-import awesome.lang.GrammarParser.BlockStatContext;
-import awesome.lang.GrammarParser.BoolExprContext;
-import awesome.lang.GrammarParser.BoolTypeContext;
-import awesome.lang.GrammarParser.CharExprContext;
-import awesome.lang.GrammarParser.CharTypeContext;
-import awesome.lang.GrammarParser.ClassDefContext;
-import awesome.lang.GrammarParser.ClassTargetContext;
-import awesome.lang.GrammarParser.CompExprContext;
-import awesome.lang.GrammarParser.DeclAssignStatContext;
-import awesome.lang.GrammarParser.DeclStatContext;
-import awesome.lang.GrammarParser.DoStatContext;
-import awesome.lang.GrammarParser.EnumDefContext;
-import awesome.lang.GrammarParser.EnumExprContext;
-import awesome.lang.GrammarParser.EnumOrClassTypeContext;
-import awesome.lang.GrammarParser.ExprContext;
-import awesome.lang.GrammarParser.FalseExprContext;
-import awesome.lang.GrammarParser.FloatExprContext;
-import awesome.lang.GrammarParser.FloatTypeContext;
-import awesome.lang.GrammarParser.ForStatContext;
-import awesome.lang.GrammarParser.FuncExprContext;
-import awesome.lang.GrammarParser.FunctionCallContext;
-import awesome.lang.GrammarParser.FunctionContext;
-import awesome.lang.GrammarParser.IdTargetContext;
-import awesome.lang.GrammarParser.IfStatContext;
-import awesome.lang.GrammarParser.IntTypeContext;
-import awesome.lang.GrammarParser.LockTypeContext;
-import awesome.lang.GrammarParser.ModExprContext;
-import awesome.lang.GrammarParser.MultDivExprContext;
-import awesome.lang.GrammarParser.NewObjectContext;
-import awesome.lang.GrammarParser.NewObjectExprContext;
-import awesome.lang.GrammarParser.NextStatContext;
-import awesome.lang.GrammarParser.NumExprContext;
-import awesome.lang.GrammarParser.ParExprContext;
-import awesome.lang.GrammarParser.PrefixExprContext;
-import awesome.lang.GrammarParser.ReadExprContext;
-import awesome.lang.GrammarParser.ReleaseStatContext;
-import awesome.lang.GrammarParser.ReturnStatContext;
-import awesome.lang.GrammarParser.StatContext;
-import awesome.lang.GrammarParser.StringExprContext;
-import awesome.lang.GrammarParser.SwitchStatContext;
-import awesome.lang.GrammarParser.TargetExprContext;
-import awesome.lang.GrammarParser.TrueExprContext;
-import awesome.lang.GrammarParser.TypeContext;
-import awesome.lang.GrammarParser.WhileStatContext;
-import awesome.lang.GrammarParser.WriteStatContext;
+import awesome.lang.GrammarParser.*;
 import awesome.lang.checking.FunctionTable.Function;
 import awesome.lang.model.Scope;
 import awesome.lang.model.Type;
@@ -74,6 +19,7 @@ import awesome.lang.model.Type.FunctionType;
 
 public class TypeChecker extends GrammarBaseVisitor<Void> {
 	private static final String CONSTRUCTOR = "init";
+	
 	private ParseTreeProperty<Type> types = new ParseTreeProperty<Type>();
 	private ParseTreeProperty<Boolean> blockNewScope = new ParseTreeProperty<Boolean>();
 	private ArrayList<String> errors 	  = new ArrayList<String>();
@@ -710,7 +656,7 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 			if(this.types.get(ctx.expr()) != Type.INT && this.types.get(ctx.expr()) != Type.FLOAT){
 				this.addError("Subexpression is not of type integer in {expr}", ctx);
 			}
-			this.types.put(ctx, Type.INT);
+			this.types.put(ctx, types.get(ctx.expr()));
 		}
 		return null;
 	}
@@ -942,6 +888,32 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 	@Override
 	public Void visitFloatExpr(FloatExprContext ctx) {
 		this.types.put(ctx, Type.FLOAT);
+		return null;
+	}
+	
+	@Override
+	public Void visitFloatCastExpr(FloatCastExprContext ctx) {
+		visit(ctx.expr());
+		
+		if(types.get(ctx.expr()) != Type.INT) {
+			addError("Can only cast ints to floats in {expr}", ctx);
+		}
+		
+		types.put(ctx, Type.FLOAT);
+		
+		return null;
+	}
+	
+	@Override
+	public Void visitIntCastExpr(IntCastExprContext ctx) {
+		visit(ctx.expr());
+		
+		if(types.get(ctx.expr()) != Type.FLOAT) {
+			addError("Can only cast floats to ints in {expr}", ctx);
+		}
+		
+		types.put(ctx, Type.INT);
+		
 		return null;
 	}
 	

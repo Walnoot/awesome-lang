@@ -37,6 +37,7 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 
 	private SymbolTable symboltable;
 	private FunctionTable funcTable;
+	private ParseTreeProperty<Type> exprTypes;
 
 	private Label nextSwitchLabel = null;
 
@@ -49,9 +50,10 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	 */
 	private Function allocFunc;
 	
-	public Generator(SymbolTable symboltable, FunctionTable funcTable) {
+	public Generator(SymbolTable symboltable, FunctionTable funcTable, ParseTreeProperty<Type> exprTypes) {
 		this.symboltable = symboltable;
 		this.funcTable = funcTable;
+		this.exprTypes = exprTypes;
 	}
 	
 	public Program genProgram(CompilationUnit unit) {
@@ -725,7 +727,9 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		
 		if (ctx.prefixOp().SUB() != null) {
 			//unary minus
-			prog.addInstr(OpCode.Compute, Operator.Sub, Reg.Zero, reg, reg);
+			
+			Operator op = exprTypes.get(ctx.expr()) == Type.INT ? Operator.Sub : Operator.SubF;
+			prog.addInstr(OpCode.Compute, op, Reg.Zero, reg, reg);
 		} else {
 			//not
 			prog.addInstr(OpCode.Compute, Operator.Equal, Reg.Zero, reg, reg);
@@ -736,36 +740,55 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitAddSubExpr(AddSubExprContext ctx) {
-		Operator op = ctx.addSubOp().ADD() != null ? Operator.Add : Operator.Sub;
+		Operator op;
+		
+		if(exprTypes.get(ctx) == Type.INT) {
+			op = ctx.addSubOp().ADD() != null ? Operator.Add : Operator.Sub;
+		} else {
+			//use float operatators
+			op = ctx.addSubOp().ADD() != null ? Operator.AddF : Operator.SubF;
+		}
 		
 		return genBinaryInstr(op, ctx, ctx.expr(0), ctx.expr(1));
 	}
 
 	@Override
 	public Instruction visitMultDivExpr(MultDivExprContext ctx) {
-		Operator op = ctx.multDivOp().MULT() != null ? Operator.Mul : Operator.Div;
+		Operator op;
+		
+		if(exprTypes.get(ctx) == Type.INT) {
+			op = ctx.multDivOp().MULT() != null ? Operator.Mul : Operator.Div;
+		} else {
+			//use float operatators
+			op = ctx.multDivOp().MULT() != null ? Operator.MulF : Operator.DivF;
+		}
 		
 		return genBinaryInstr(op, ctx, ctx.expr(0), ctx.expr(1));
 	}
 
 	@Override
 	public Instruction visitModExpr(ModExprContext ctx) {
-		return genBinaryInstr(Operator.Mod, ctx, ctx.expr(0), ctx.expr(1));
+		Operator op = exprTypes.get(ctx) == Type.INT ? Operator.Mod : Operator.ModF;
+		
+		return genBinaryInstr(op, ctx, ctx.expr(0), ctx.expr(1));
 	}
 	
 	@Override
 	public Instruction visitCompExpr(CompExprContext ctx) {
 		Operator op = null;
 		
+		//whether this is comparing int or float types
+		boolean i = exprTypes.get(ctx.expr(0)) == Type.INT;
+		
 		//LE | LT | GE | GT | EQ | NE;
 		if (ctx.compOp().LE() != null)
-			op = Operator.LtE;
+			op = i ? Operator.LtE : Operator.LtEF;
 		if (ctx.compOp().LT() != null)
-			op = Operator.Lt;
+			op = i ? Operator.Lt : Operator.LtF;
 		if (ctx.compOp().GE() != null)
-			op = Operator.GtE;
+			op = i ? Operator.GtE : Operator.GtEF;
 		if (ctx.compOp().GT() != null)
-			op = Operator.Gt;
+			op = i ? Operator.Gt : Operator.GtF;
 		if (ctx.compOp().EQ() != null)
 			op = Operator.Equal;
 		if (ctx.compOp().NE() != null)
@@ -938,9 +961,11 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitNewObject(NewObjectContext ctx) {
+		//size of an object is the number of fields
 		int size = Type.getClass(ctx.ID().getText()).getScope().getOffset();
 		Instruction instr = alloc(size, newReg(ctx));
 		
+		//see if an constructor is being called
 		Function func = funcTable.getFunction(ctx);
 		
 		if(func != null){//constructor is optional
@@ -948,6 +973,32 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		}
 		
 		return instr;
+	}
+	
+	@Override
+	public Instruction visitFloatExpr(FloatExprContext ctx) {
+		float val = Float.parseFloat(ctx.FLOATLITERAL().getText());
+		return prog.addInstr(OpCode.Const, Float.floatToIntBits(val), newReg(ctx));
+	}
+	
+	@Override
+	public Instruction visitFloatCastExpr(FloatCastExprContext ctx) {
+		visit(ctx.expr());
+		
+		Reg reg = regs.get(ctx.expr());
+		regs.put(ctx, reg);
+		
+		return prog.addInstr(OpCode.Compute, Operator.ItoF, reg, Reg.Zero, reg);
+	}
+	
+	@Override
+	public Instruction visitIntCastExpr(IntCastExprContext ctx) {
+		visit(ctx.expr());
+		
+		Reg reg = regs.get(ctx.expr());
+		regs.put(ctx, reg);
+		
+		return prog.addInstr(OpCode.Compute, Operator.FtoI, reg, Reg.Zero, reg);
 	}
 	
 	@Override
@@ -962,6 +1013,9 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 		return reg;
 	}
 	
+	/**
+	 * Reserves a register for use. Be sure to free this register after use.
+	 */
 	private Reg newReg() {
 		if(freeRegs.size() == 0){
 			throw new IllegalStateException("Out of registers");

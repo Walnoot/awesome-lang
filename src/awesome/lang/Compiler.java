@@ -44,7 +44,7 @@ public class Compiler {
 		}
 		
 		
-		Generator generator = new Generator(checker.getSymbolTable(), checker.getFunctionTable());
+		Generator generator = new Generator(checker.getSymbolTable(), checker.getFunctionTable(), checker.getExpressionTypes());
 		return generator.genProgram(cUnit);
 	}
 	

@@ -193,17 +193,28 @@ public class CompilerTest {
 				+ "Test obj = new Test(3,2,2); print(obj.a+obj.b);", "7");
 	}
 	
+	@Test
+	public void testFloats() throws IOException, InterruptedException, CompilationException {
+		testProgram("float x = 1.5 * 2.0; print(int(x));", "3");
+		testProgram("float x = 1.5 * float(2); print(int(x));", "3");
+		testProgram("print(1.5);", "1.5");
+		testProgram("print(-0.7);", "-0.7");
+		testProgram("print(-7.5);", "-7.5");
+		testProgram("print(3.4 > 3.3);", "true");
+	}
 	
 	@Test
 	public void testThreads() throws IOException, InterruptedException, CompilationException {
+		//if print wasnt atomic, the two numbers would be mixed
 		String prog = "thread do1(): {print(12345);} thread do2(): {print(12345);} do1(); do2();";
 		testProgram(prog, "1234512345");
 	}
 	
 	@Test
 	public void testStdlib() throws IOException, InterruptedException, CompilationException {
+		//test int to string algorithm
 		testProgram("print(120034);", "120034");
-		testProgram("print(-1);", "-1");
+		testProgram("print(-32);", "-32");
 	}
 	
 	@Test
