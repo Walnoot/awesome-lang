@@ -983,22 +983,26 @@ public class Generator extends GrammarBaseVisitor<Instruction> {
 	
 	@Override
 	public Instruction visitFloatCastExpr(FloatCastExprContext ctx) {
-		visit(ctx.expr());
+		Instruction instr = visit(ctx.expr());
 		
 		Reg reg = regs.get(ctx.expr());
 		regs.put(ctx, reg);
 		
-		return prog.addInstr(OpCode.Compute, Operator.ItoF, reg, Reg.Zero, reg);
+		prog.addInstr(OpCode.Compute, Operator.ItoF, reg, Reg.Zero, reg);
+		
+		return instr;
 	}
 	
 	@Override
 	public Instruction visitIntCastExpr(IntCastExprContext ctx) {
-		visit(ctx.expr());
+		Instruction instr = visit(ctx.expr());
 		
 		Reg reg = regs.get(ctx.expr());
 		regs.put(ctx, reg);
 		
-		return prog.addInstr(OpCode.Compute, Operator.FtoI, reg, Reg.Zero, reg);
+		prog.addInstr(OpCode.Compute, Operator.FtoI, reg, Reg.Zero, reg);
+		
+		return instr;
 	}
 	
 	@Override
