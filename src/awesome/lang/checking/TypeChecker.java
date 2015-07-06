@@ -255,6 +255,9 @@ public class TypeChecker extends GrammarBaseVisitor<Void> {
 		ArrayList<String> values = new ArrayList<String>();
 		if (ctx.ID().size() > 1) {
 			for (int i = 1; i < ctx.ID().size(); i++) {
+				if (values.contains(ctx.ID(i).getText())) {
+					this.addError("Reusing the same value in enum, in expression: {expr}", ctx);
+				}
 				values.add(ctx.ID(i).getText());
 			}
 		}
