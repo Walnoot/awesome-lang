@@ -12,6 +12,14 @@ import org.junit.Test;
 import awesome.lang.Compiler;
 import awesome.lang.Compiler.CompilationException;
 
+/**
+ * Tests every feature of the language.
+ * Compiled test programs are written to gen/test.hs and automatically executed.
+ * Requirements:
+ * 	- the gen folder exists in the project root
+ *  - sprockell exists in project root
+ *  - ghc is installed and in the path
+ */
 public class CompilerTest {
 	private static Compiler compiler;
 	

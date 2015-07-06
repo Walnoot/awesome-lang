@@ -1,7 +1,7 @@
 int balance = 700;
 lock balanceLock;
 
-addToBalance(int amount): {
+int addToBalance(int amount): {
 	acquire balanceLock;
 	
 	int newBalance = balance + amount;

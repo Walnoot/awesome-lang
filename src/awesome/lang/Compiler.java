@@ -63,22 +63,21 @@ public class Compiler {
 	}
 	
 	/**
-	 * compile the example or program, defined by the given arguments. 
+	 * Compiles a program and writes the generated haskell code to the gen folder in project root.
+	 * If the first argument is -example, it searches relative to the examples directory.
+	 * Example usage: "-example gameoflife.awl" compiles the game of life example program and writes
+	 * it to gen/gameoflife.awl
 	 */
 	public static void main(String[] args) throws CompilationException, IOException {
-		if(args[0].equals("ex")) {
-			new Compiler().compile(Paths.get("src/awesome/lang/examples/", args[1])).writeSprockell("example.hs");
+		Path path;
+		
+		if(args[0].equals("-example")) {
+			path = Paths.get("src/awesome/lang/examples/", args[1]);
 		} else {
-			String prog = "";
-			for (int i = 0; i < args.length; i++) {
-				if(i != 0) prog += " ";
-				prog += args[i];
-			}
-			
-			System.out.printf("Compiling %s\n", prog);
-			
-			Program program = new Compiler().compile(prog);
-			program.writeSprockell("comp.hs");
+			path = Paths.get(args[0]);
 		}
+		
+		String name = path.getFileName().toString().split("\\.")[0];
+		new Compiler().compile(path).writeSprockell(name + ".hs");
 	}
 }
