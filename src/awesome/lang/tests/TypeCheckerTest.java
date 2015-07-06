@@ -5,23 +5,12 @@ import static org.junit.Assert.*;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.TokenStream;
-import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.junit.Test;
 
-import com.sun.org.apache.xalan.internal.xsltc.compiler.CompilerException;
-
 import awesome.lang.Compiler.CompilationException;
-import awesome.lang.GrammarLexer;
-import awesome.lang.GrammarParser;
-import awesome.lang.Compiler;
 import awesome.lang.ImportResolver;
 import awesome.lang.checking.CompilationUnit;
 import awesome.lang.checking.TypeChecker;
-import awesome.lang.model.Program;
 import awesome.lang.model.Type;
 
 // if any test has more errors than you would expect, remind that any expression with an undeterminable type will be addressed as boolean.
